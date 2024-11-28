@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools>=40.8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "floki-ai"
+version = "0.1.0"
+description = "Agentic Workflows Made Simple"
+readme = "README.md"
+authors = [{ name = "Roberto Rodriguez"}]
+license = { text = "MIT License" }
+requires-python = ">=3.9, <3.13"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9"
+]
+
+dependencies = [
+    "pydantic==2.10.2",
+    "chromadb==0.5.20",
+    "openai==1.55.2",
+    "openapi-pydantic==0.5.0",
+    "regex>=2023.12.25",
+    "sentence-transformers==3.3.1",
+    "neo4j==5.26.0",
+    "Jinja2==3.1.4",
+    "azure-identity==1.19.0"
+]
+
+[project.urls]
+homepage = "https://github.com/Cyb3rWard0g/floki"
+
+[tool.poetry]
+name = "floki"
+version = "0.1.0"
+description = "Agentic Workflows Made Simple"
+authors = ["Roberto Rodriguez"]
+license = "MIT"
+repository = "https://github.com/Cyb3rWard0g/floki"
+readme = "README.md"
+packages = [{ include = "floki", from = "src" }]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Operating System :: OS Independent",
+    'Topic :: Security',
+]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pydantic = "2.10.2"
+chromadb = "0.5.20"
+openai = "1.55.2"
+openapi-pydantic = "0.5.0"
+regex = "^2023.12.25"
+sentence-transformers = "3.3.1"
+neo4j = "5.26.0"
+Jinja2 = "3.1.4"
+azure-identity = "1.19.0"
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.4"
