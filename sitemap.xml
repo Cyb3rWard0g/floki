@@ -2,42 +2,42 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://cyb3rward0g.github.io/floki/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/installation/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/quickstarts/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/quickstarts/agentic_workflows/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/quickstarts/agents/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/quickstarts/dapr_workflows/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/quickstarts/llm/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://cyb3rward0g.github.io/floki/quickstarts/llm_workflows/</loc>
-         <lastmod>2024-11-28</lastmod>
+         <lastmod>2024-11-30</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>

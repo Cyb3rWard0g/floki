@@ -577,13 +577,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#defautl-dapr-workflows" class="md-nav__link">
+  <a href="#default-dapr-workflows" class="md-nav__link">
     <span class="md-ellipsis">
-      Defautl Dapr Workflows
+      Default Dapr Workflows
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Defautl Dapr Workflows">
+    <nav class="md-nav" aria-label="Default Dapr Workflows">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -713,13 +713,13 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#defautl-dapr-workflows" class="md-nav__link">
+  <a href="#default-dapr-workflows" class="md-nav__link">
     <span class="md-ellipsis">
-      Defautl Dapr Workflows
+      Default Dapr Workflows
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Defautl Dapr Workflows">
+    <nav class="md-nav" aria-label="Default Dapr Workflows">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -783,7 +783,7 @@
 <p>This quickstart requires <code>Dapr CLI</code> and <code>Docker</code>. You must have your <a href="../../installation/">local Dapr environment set up</a>.</p>
 </div>
 <p><a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr workflows</a> provide a solid framework for managing long-running processes and interactions across distributed systems using the Dapr Python SDK. Floki builds on this by introducing tasks, which simplify defining and managing workflows while adding features like tool integrations and LLM-powered reasoning. This approach allows you to start with basic Dapr workflows and expand to more advanced capabilities, such as LLM-driven tasks or multi-agent coordination, as your needs grow.</p>
-<h2 id="defautl-dapr-workflows">Defautl Dapr Workflows<a class="headerlink" href="#defautl-dapr-workflows" title="Permanent link">&para;</a></h2>
+<h2 id="default-dapr-workflows">Default Dapr Workflows<a class="headerlink" href="#default-dapr-workflows" title="Permanent link">&para;</a></h2>
 <p>Creating a <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr workflow</a> is straightforward. Start by creating a python script <code>wf_taskchain_original_activity.py</code> and initializing the <code>WorkflowRuntime</code>, which manages the execution of workflows.</p>
 <div class="language-python highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">dapr.ext.workflow</span> <span class="k">as</span> <span class="nn">wf</span>
 
@@ -855,7 +855,7 @@
 </code></pre></div>
 <h3 id="run-workflow">Run Workflow!<a class="headerlink" href="#run-workflow" title="Permanent link">&para;</a></h3>
 <p>Now, you can run that workflow with the <code>Dapr CLI</code>:</p>
-<div class="language-text highlight"><pre><span></span><code>apr run --app-id originalwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_original_activity.py
+<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>originalwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_original_activity.py
 </code></pre></div>
 <p><img alt="" src="../../img/workflows_original_activity.png" /></p>
 <h2 id="dapr-workflow-floki-workflows">Dapr Workflow -&gt; Floki Workflows<a class="headerlink" href="#dapr-workflow-floki-workflows" title="Permanent link">&para;</a></h2>
@@ -899,7 +899,7 @@
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results: </span><span class="si">{</span><span class="n">results</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>Now, you can run that workflow with the same command with the <code>Dapr CLI</code>:</p>
-<div class="language-text highlight"><pre><span></span><code>apr run --app-id flokiwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_floki_activity.py
+<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>flokiwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_floki_activity.py
 </code></pre></div>
 <p><img alt="" src="../../img/workflows_floki_activity.png" /></p>
 <p>If we inspect the <code>Workflow State</code> in the state store, you would see something like this:</p>

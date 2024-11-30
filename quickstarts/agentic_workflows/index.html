@@ -880,12 +880,14 @@ services/                  # Directory for agent services
     <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
 </code></pre></div>
 <p>Now, you can define multiple services following this format, but it's essential to pay attention to key areas to ensure everything runs smoothly. Specifically, focus on correctly configuring the components (e.g., <code>statestore</code> and <code>pubsub</code> names) and incrementing the ports for each service.</p>
-<p>Key Considerations:
-* Ensure the <code>message_bus_name</code> matches the <code>pub/sub</code> component name in your <code>pubsub.yaml</code> file.
-* Verify the <code>agents_state_store_name</code> matches the state store component defined in your <code>statestore.yaml</code> file.
-* Increment the port for each new agent service (e.g., 8001, 8002, 8003).
-* Similarly, increment the <code>daprGrpcPort</code> for each service (e.g., 50001, 50002, 50003) to avoid conflicts.
-* Customize the Agent parameters (<code>role</code>, <code>name</code>, <code>goal</code>, and <code>instructions</code>) to match the behavior you want for each service.</p>
+<p>Key Considerations:</p>
+<ul>
+<li>Ensure the <code>message_bus_name</code> matches the <code>pub/sub</code> component name in your <code>pubsub.yaml</code> file.</li>
+<li>Verify the <code>agents_state_store_name</code> matches the state store component defined in your <code>statestore.yaml</code> file.</li>
+<li>Increment the port for each new agent service (e.g., 8001, 8002, 8003).</li>
+<li>Similarly, increment the <code>daprGrpcPort</code> for each service (e.g., 50001, 50002, 50003) to avoid conflicts.</li>
+<li>Customize the Agent parameters (<code>role</code>, <code>name</code>, <code>goal</code>, and <code>instructions</code>) to match the behavior you want for each service.</li>
+</ul>
 <h2 id="the-agentic-workflow-service">The Agentic Workflow Service<a class="headerlink" href="#the-agentic-workflow-service" title="Permanent link">&para;</a></h2>
 <p>The Agentic Workflow Service in Floki extends workflows to orchestrate communication among agents. It allows you to send messages to agents to trigger their participation and monitors a shared message bus to listen for all messages being passed. This enables dynamic collaboration and task distribution among agents.</p>
 <p>Types of Agentic Workflows:</p>
