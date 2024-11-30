@@ -1,5 +1,6 @@
 from floki.agent import (
-    Agent, AgentService, RoundRobinWorkflowService, RandomWorkflowService,
+    Agent, AgentService, AgentServiceBase,
+    AgenticWorkflowService, RoundRobinWorkflowService, RandomWorkflowService,
     LLMWorkflowService, ReActAgent, ToolCallAgent, OpenAPIReActAgent
 )
 from floki.llm import LLMClientBase

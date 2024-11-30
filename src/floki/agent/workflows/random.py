@@ -1,4 +1,4 @@
-from floki.agent.workflow import AgenticWorkflowService
+from floki.agent.workflows.base import AgenticWorkflowService
 from floki.types import DaprWorkflowContext
 from floki.types.message import UserMessage
 from datetime import timedelta
@@ -27,7 +27,7 @@ class RandomWorkflowService(AgenticWorkflowService):
         self.task(self.add_message)
         # Custom tasks
         self.task(self.process_input)
-        self.task(self.broadcast_message)
+        self.task(self.broadcast_input_message)
         self.task(self.select_random_speaker)
         self.task(self.trigger_agent)
     
@@ -50,7 +50,7 @@ class RandomWorkflowService(AgenticWorkflowService):
         logger.info(f"Initial message from {message_input['role']} -> {self.name}")
         
         # Broadcast first message
-        yield ctx.call_activity(self.broadcast_message, input=message_input)
+        yield ctx.call_activity(self.broadcast_input_message, input=message_input)
 
         # Start Iteration
         for i in range(self.max_iterations):
@@ -98,7 +98,7 @@ class RandomWorkflowService(AgenticWorkflowService):
         """
         return UserMessage(content=message).model_dump()
 
-    async def broadcast_message(self, **kwargs):
+    async def broadcast_input_message(self, **kwargs):
         """
         Broadcasts a message to all agents.
 
@@ -106,7 +106,7 @@ class RandomWorkflowService(AgenticWorkflowService):
         """
         message = {key: value for key, value in kwargs.items()}
         await self.publish_message_to_all(
-            message_type="BroadcastMessage",
+            message_type="StartMessage",
             message=message
         )
     
