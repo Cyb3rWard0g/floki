@@ -75,6 +75,7 @@ if __name__ == "__main__":
 Now, you can define multiple services following this format, but it's essential to pay attention to key areas to ensure everything runs smoothly. Specifically, focus on correctly configuring the components (e.g., `statestore` and `pubsub` names) and incrementing the ports for each service.
 
 Key Considerations:
+
 * Ensure the `message_bus_name` matches the `pub/sub` component name in your `pubsub.yaml` file.
 * Verify the `agents_state_store_name` matches the state store component defined in your `statestore.yaml` file.
 * Increment the port for each new agent service (e.g., 8001, 8002, 8003).
