@@ -1,13 +1,10 @@
 from dapr.actor.runtime.config import ActorRuntimeConfig, ActorTypeConfig, ActorReentrancyConfig
-from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Response, status
 from floki.storage.daprstores.statestore import DaprStateStore
 from floki.agent.actor import AgentActorBase, AgentActorInterface
 from floki.service.fastapi import DaprEnabledService
 from floki.types.agent import AgentActorMessage
-from floki.types.message import UserMessage
 from floki.agent import AgentBase
-from cloudevents.http.conversion import from_http
-from cloudevents.http.event import CloudEvent
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from dapr.actor.runtime.runtime import ActorRuntime
@@ -16,20 +13,22 @@ from dapr.actor import ActorProxy, ActorId
 from pydantic import Field, model_validator, ConfigDict
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from typing import Optional, Any
+from typing import Optional, Any, Callable, TypeVar, Union, List
 import json
 import logging
 
 logger = logging.getLogger(__name__)
 
-class AgentService(DaprEnabledService):
+T = TypeVar("T", bound=Callable)
+
+class AgentServiceBase(DaprEnabledService):
     """
     A Pydantic-based class for managing services and exposing FastAPI routes with Dapr pub/sub and actor support.
     """
 
     agent: AgentBase
     agent_topic_name: Optional[str] = Field(None, description="The topic name dedicated to this specific agent, derived from the agent's name if not provided.")
-    broadcast_topic_name: Optional[str] = Field("beacon_channel", description="The default topic used for broadcasting messages to all agents.")
+    broadcast_topic_name: str = Field("beacon_channel", description="The default topic used for broadcasting messages to all agents.")
     task_results_topic_name: Optional[str] = Field("task_results_channel", description="The default topic used for sending the results of a task executed by an agent.")
     agents_state_store_name: str = Field(..., description="The name of the Dapr state store component used to store and share agent metadata centrally.")
 
@@ -60,7 +59,7 @@ class AgentService(DaprEnabledService):
 
         # Proceed with base model setup
         super().model_post_init(__context)
-
+            
         # Initialize the Dapr state store for agent metadata
         self.agent_metadata_store = DaprStateStore(store_name=self.agents_state_store_name, address=self.daprGrpcAddress)
 
@@ -89,13 +88,8 @@ class AgentService(DaprEnabledService):
         # DaprActor for actor support
         self.actor = DaprActor(self.app)
 
-        # Subscribe to the main agent-specific topic
-        self.dapr_app.subscribe(pubsub=self.message_bus_name, topic=self.agent_topic_name)(self.process_agent_message)
-        logger.info(f"{self.name} subscribed to topic {self.agent_topic_name} on {self.message_bus_name}")
-
-        # Subscribe to the broadcast topic to handle shared messages
-        self.dapr_app.subscribe(pubsub=self.message_bus_name, topic=self.broadcast_topic_name)(self.process_broadcast_message)
-        logger.info(f"{self.name} subscribed to topic {self.broadcast_topic_name} on {self.message_bus_name}")
+        # Registering App routes and subscriping to topics dynamically
+        self.register_message_routes()
 
         # Adding other API Routes
         self.app.add_api_route("/GetMessages", self.get_messages, methods=["GET"]) # Get messages from conversation history state
@@ -294,123 +288,112 @@ class AgentService(DaprEnabledService):
             logger.error(f"Failed to publish results message of type {message_type} to topic '{self.task_results_topic_name}': {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error publishing results message: {str(e)}")
     
-    async def process_agent_message(self, request: Request) -> Response:
+    def register_message_routes(self) -> None:
         """
-        Processes messages sent directly to the agent's topic.
-        Handles various message types (e.g., TriggerAction) and broadcasts responses if necessary.
-
-        Args:
-            request (Request): The incoming pub/sub request containing a task.
-
-        Returns:
-            Response: The agent's response after processing the task.
+        Dynamically register message handlers and the Dapr /subscribe endpoint.
         """
-        try:
-            # Parse the incoming CloudEvent
-            body = await request.body()
-            headers = request.headers
-            event: CloudEvent = from_http(dict(headers), body)
+        for method_name in dir(self):
+            method = getattr(self, method_name, None)
+            if callable(method) and hasattr(method, "_is_message_handler"):
+                # Retrieve metadata from the decorator
+                router_data = method._message_router_data
+                pubsub_name = router_data.get("pubsub") or self.message_bus_name
+                is_broadcast = router_data.get("is_broadcast", False)
 
-            message_type = event.get("type")
-            message_data: dict = event.data
-            source = event.get("source")
+                # Dynamically assign topic_name to self.agent.name if not explicitly provided
+                topic_name = router_data.get("topic")
+                if not topic_name and not is_broadcast:
+                    topic_name = self.agent.name
+                elif is_broadcast:
+                    topic_name = self.broadcast_topic_name
 
-            logger.info(f"{self.agent.name} received {message_type} message from {source}.")
+                # Extend route with method name for uniqueness
+                route = router_data.get("route") or (f"/events/{pubsub_name}/{topic_name}/{method_name}" if topic_name else None)
+                message_type = router_data.get("message_type")
+                dead_letter_topic = router_data.get("dead_letter_topic")
+                custom_rules = router_data.get("rules")
 
-            # Extract workflow_instance_id from headers if available
-            workflow_instance_id = headers.get("workflow_instance_id")
+                # Validation: Ensure a route is provided for standalone handlers
+                if not route:
+                    raise ValueError(
+                        f"Method '{method_name}' must define a 'route' or be tied to a pub/sub topic."
+                    )
 
-            # Handle TriggerAction type messages
-            if message_type == "TriggerActionMessage":
-                task = message_data.get("task")
+                # Register the route in FastAPI
+                self.app.add_api_route(route, method, methods=["POST"], tags=["PubSub"])
+                handler_type = "broadcast" if is_broadcast else "standard"
+                logger.info(f"Registered {handler_type} POST route for '{method_name}'")
+                logger.info(f"Route: {route}")
 
-                # Execute the task, defaulting to the agent's internal memory if no task is provided
-                if not task:
-                    logger.info(f"{self.agent.name} running a task from memory.")
+                # Register the subscription only if `topic_name` is explicitly provided or set dynamically
+                if topic_name:
+                    subscription = next(
+                        (sub for sub in self.dapr_app._subscriptions if sub["pubsubname"] == pubsub_name and sub["topic"] == topic_name),
+                        None,
+                    )
+                    if subscription is None:
+                        subscription = {
+                            "pubsubname": pubsub_name,
+                            "topic": topic_name,
+                            "routes": {"rules": []},  # Default route removed
+                            **({"deadLetterTopic": dead_letter_topic} if dead_letter_topic else {}),
+                        }
+                        self.dapr_app._subscriptions.append(subscription)
 
-                # Execute the task or no input
-                response = await self.invoke_task(task)
+                    # Add routing rule for `message_type` or `rules`
+                    if isinstance(message_type, list):
+                        # Use JSON formatting for CEL list rules
+                        rule = {"match": f"event.type in {json.dumps(message_type)}", "path": route}
+                        subscription["routes"]["rules"].append(rule)
+                    elif message_type:
+                        rule = {"match": f"event.type == '{message_type}'", "path": route}
+                        subscription["routes"]["rules"].append(rule)
+                    elif custom_rules:
+                        rule = {"match": custom_rules["match"], "path": route}
+                        subscription["routes"]["rules"].append(rule)
 
-                # Prepare and broadcast the result as AgentActionResultMessage
-                response_message = UserMessage(
-                    name=self.agent.name,
-                    content=response.body.decode()
-                )
+                    logger.info(
+                        f"Subscribed '{method_name}' to topic '{topic_name}' with "
+                        f"rules '{custom_rules or f'event.type == {message_type}'}'"
+                    )
+        
+        logger.debug(f"Subscription Routes: {json.dumps(self.dapr_app._get_subscriptions(), indent=2)}")
 
-                # Broadcast results to all agents
-                await self.publish_message_to_all(
-                    message_type="ActionResponseMessage",
-                    message=response_message.model_dump()
-                )
+def message_router(
+    pubsub: Optional[str] = None,
+    topic: Optional[str] = None,
+    message_type: Optional[Union[str, List[str]]] = None,
+    route: Optional[str] = None,
+    dead_letter_topic: Optional[str] = None,
+    broadcast: bool = False,
+    rules: Optional[dict] = None,
+) -> Callable[[T], T]:
+    def decorator(func: T) -> T:
+        # Attach metadata for dynamic registration
+        func._is_message_handler = True
+        func._message_router_data = {
+            "pubsub": pubsub,
+            "topic": topic if not broadcast else None,
+            "message_type": message_type,
+            "route": route,
+            "dead_letter_topic": dead_letter_topic,
+            "rules": rules,
+            "is_broadcast": broadcast,
+        }
 
-                # Send results to task results topic
-                additional_metadata = {'ttlInSeconds': '120'}
-                if workflow_instance_id:
-                    additional_metadata["event_name"] = "AgentCompletedTask"
-                    additional_metadata["workflow_instance_id"] = workflow_instance_id
-                
-                await self.publish_results_message(
-                    message_type="ActionResponseMessage",
-                    message=response_message.model_dump(),
-                    **additional_metadata
-                )
+        # Validation
+        if not message_type and not route and not rules and not broadcast:
+            raise ValueError(
+                "If 'message_type', 'rules', or 'broadcast' are not specified, a 'route' must be defined."
+            )
+        if broadcast and route is None:
+            # Allow broadcast handlers to omit route, as it can be dynamically set
+            pass
+        elif rules and not isinstance(rules, dict):
+            raise ValueError(
+                "'rules' must be a dictionary with valid CEL match logic. See: https://github.com/google/cel-spec"
+            )
 
-                return response
+        return func
 
-            else:
-                # Log unsupported message types
-                logger.warning(f"Unsupported message type '{message_type}' received by {self.agent.name}.")
-                return Response(content=json.dumps({"error": f"Unsupported message type: {message_type}"}), status_code=status.HTTP_400_BAD_REQUEST)
-
-        except Exception as e:
-            logger.error(f"Error processing agent message: {e}", exc_info=True)
-            return Response(content=json.dumps({"error": f"Error processing message: {str(e)}"}), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
-    async def process_broadcast_message(self, request: Request) -> Response:
-        """
-        Processes a message from the broadcast topic.
-        Ensures the agent does not process messages sent by itself,
-        and adds user messages to both the agent's memory and the actor's state.
-
-        Args:
-            request (Request): The incoming broadcast request.
-
-        Returns:
-            Response: Acknowledgment of the broadcast processing.
-        """
-        try:
-            # Parse the CloudEvent from the request
-            body = await request.body()
-            headers = request.headers
-            event: CloudEvent = from_http(dict(headers), body)
-            
-            message_type = event.get("type")
-            broadcast_message: dict = event.data
-            source = event.get("source")
-            message_content = broadcast_message.get("content")
-            
-            if not message_content:
-                logger.warning(f"Broadcast message missing 'content': {broadcast_message}")
-                return Response(content="Invalid broadcast message: 'content' is required.", status_code=status.HTTP_400_BAD_REQUEST)
-
-            # Ignore messages sent by this agent (based on CloudEvent source)
-            if source == self.agent.name:
-                logger.info(f"{self.agent.name} ignored its own broadcast message of type {message_type}.")
-                return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-            # Log and process the valid broadcast message
-            logger.info(f"{self.agent.name} is processing broadcast message {message_type} from '{source}'")
-            logger.debug(f"Message: {message_content}")
-
-            # Add the message to the agent's memory
-            self.agent.memory.add_message(broadcast_message)
-
-            # Add the message to the actor's state
-            actor_message = AgentActorMessage(**broadcast_message)
-            await self.add_message(actor_message)
-
-            return Response(content="Broadcast message added to memory and actor state.", status_code=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"Error processing broadcast message: {e}", exc_info=True)
-            return Response(content=f"Error processing message: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return decorator
