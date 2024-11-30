@@ -5,7 +5,7 @@
 
 [Dapr workflows](https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/) provide a solid framework for managing long-running processes and interactions across distributed systems using the Dapr Python SDK. Floki builds on this by introducing tasks, which simplify defining and managing workflows while adding features like tool integrations and LLM-powered reasoning. This approach allows you to start with basic Dapr workflows and expand to more advanced capabilities, such as LLM-driven tasks or multi-agent coordination, as your needs grow.
 
-## Defautl Dapr Workflows
+## Default Dapr Workflows
 
 Creating a [Dapr workflow](https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/) is straightforward. Start by creating a python script `wf_taskchain_original_activity.py` and initializing the `WorkflowRuntime`, which manages the execution of workflows.
 
