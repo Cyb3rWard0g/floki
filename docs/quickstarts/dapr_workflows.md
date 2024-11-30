@@ -93,8 +93,8 @@ spec:
 
 Now, you can run that workflow with the `Dapr CLI`:
 
-```
-apr run --app-id originalwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_original_activity.py
+```bash
+dapr run --app-id originalwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_original_activity.py
 ```
 
 ![](../img/workflows_original_activity.png)
@@ -145,8 +145,8 @@ if __name__ == '__main__':
 
 Now, you can run that workflow with the same command with the `Dapr CLI`:
 
-```
-apr run --app-id flokiwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_floki_activity.py
+```bash
+dapr run --app-id flokiwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_floki_activity.py
 ```
 
 ![](../img/workflows_floki_activity.png)
