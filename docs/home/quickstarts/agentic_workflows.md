@@ -223,7 +223,7 @@ In this example:
 
 If you check the console where you started all the service servers, you will see the following output once the system reaches its maximum number of iterations.
 
-![](../img/workflows_random_event_driven.png)
+![](../../img/workflows_random_event_driven.png)
 
 ## Monitor Workflow Execution
 
@@ -232,10 +232,10 @@ We can use the Zipkin container to monitor our workflow execution. To do this, o
 
 Click on `Find a Trace` and then `Run Query` to search for traces.
 
-![](../img/workflows_random_zipkin_portal.png)
+![](../../img/workflows_random_zipkin_portal.png)
 
 Select the trace entry with multiple spans labeled `<workflow name>: /taskhubsidecarservice/startinstance.`
 
 When you open this entry, you’ll see details about how each task or activity in the workflow was executed. If any task failed, the error will also be visible here.
 
-![](../img/workflows_random_zipkin_spans.png)
+![](../../img/workflows_random_zipkin_spans.png)
