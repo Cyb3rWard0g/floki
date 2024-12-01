@@ -97,6 +97,26 @@ git push origin feature/your-feature-name
 3. Include a clear title and description of your changes.
 4. Add any related issue numbers (e.g., Closes #123).
 
+### 8. Building the Documentation Locally
+
+To contribute to Floki's documentation, you can preview the docs locally using Docker. Follow these steps:
+
+1. Ensure you have Docker installed and running on your system. If not, download Docker here.
+2. Navigate to the project's root directory where the documentation files are located.
+3. Run the following command to start a local documentation server:
+
+```bash
+docker run --rm -it -p 8000:8000 -v ${PWD}:/docs squidfunk/mkdocs-material
+```
+
+4. Open your browser and go to the following URL to view the docs:
+
+```
+http://0.0.0.0:8000/floki/
+```
+
+5. Any changes you make to the Markdown files under the /docs folder will automatically reflect in the preview.
+
 ## Reviewing Pull Requests
 
 * Be responsive to feedback.
