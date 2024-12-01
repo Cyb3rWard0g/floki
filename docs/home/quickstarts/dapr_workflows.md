@@ -97,7 +97,7 @@ Now, you can run that workflow with the `Dapr CLI`:
 dapr run --app-id originalwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_original_activity.py
 ```
 
-![](../img/workflows_original_activity.png)
+![](../../img/workflows_original_activity.png)
 
 
 ## Dapr Workflow -> Floki Workflows
@@ -149,7 +149,7 @@ Now, you can run that workflow with the same command with the `Dapr CLI`:
 dapr run --app-id flokiwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_floki_activity.py
 ```
 
-![](../img/workflows_floki_activity.png)
+![](../../img/workflows_floki_activity.png)
 
 If we inspect the `Workflow State` in the state store, you would see something like this:
 

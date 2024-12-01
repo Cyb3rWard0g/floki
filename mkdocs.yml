@@ -128,11 +128,15 @@ validation:
 nav:
   - Home:
     - Home: index.md
-    - Installation: installation.md
+    - Installation: home/installation.md
     - Quickstarts:
-      - Quickstarts: quickstarts/index.md
-      - LLM Inference Client: quickstarts/llm.md
-      - AI Agents: quickstarts/agents.md
-      - Dapr & Floki Workflows: quickstarts/dapr_workflows.md
-      - LLM-based Task Workflows: quickstarts/llm_workflows.md
-      - Event-Driven Agentic Workflows: quickstarts/agentic_workflows.md
+      - Quickstarts: home/quickstarts/index.md
+      - LLM Inference Client: home/quickstarts/llm.md
+      - AI Agents: home/quickstarts/agents.md
+      - Dapr & Floki Workflows: home/quickstarts/dapr_workflows.md
+      - LLM-based Task Workflows: home/quickstarts/llm_workflows.md
+      - Event-Driven Agentic Workflows: home/quickstarts/agentic_workflows.md
+    - Concepts:
+      - Enter Floki!: home/concepts/floki.md
+      - Core Principles: home/concepts/principles.md
+      - Agents: home/concepts/agents.md

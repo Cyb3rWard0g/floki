@@ -98,7 +98,7 @@ if __name__ == '__main__':
 dapr run --app-id originalllmwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_openai_original_llm_request.py
 ```
 
-![](../img/workflows_originial_llm_request.png)
+![](../../img/workflows_originial_llm_request.png)
 
 ## Floki LLM-based Tasks
 
@@ -146,4 +146,4 @@ Run the workflow with the following command:
 dapr run --app-id flokillmmwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_openai_floki_llm_request.py
 ```
 
-![](../img/workflows_floki_llm_request.png)
+![](../../img/workflows_floki_llm_request.png)
