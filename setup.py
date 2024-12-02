@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="floki-ai",
-    version="0.2.0",
+    version="0.3.0",
     author="Roberto Rodriguez",
     description="Agentic Workflows Made Simple",
     long_description=long_description,
@@ -29,7 +29,10 @@ setup(
         "sentence-transformers==3.3.1",
         "neo4j==5.26.0",
         "Jinja2==3.1.4",
-        "azure-identity==1.19.0"
+        "azure-identity==1.19.0",
+        "dapr==1.14.0",
+        "dapr-ext-fastapi==1.14.0",
+        "dapr-ext-workflow==0.5.0"
     ],
     license='MIT',
     classifiers=[
