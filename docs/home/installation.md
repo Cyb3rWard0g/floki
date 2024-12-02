@@ -27,7 +27,7 @@ cd floki
 poetry install
 ```
 
-## Install Dapr CLI
+## Install Dapr CLI and Dapr Python SDK
 
 Install the Dapr CLI to manage Dapr-related tasks like running applications with sidecars, viewing logs, and launching the Dapr dashboard. It works seamlessly with both self-hosted and Kubernetes environments. For a complete step-by-step guide, visit the official [Dapr CLI installation page](https://docs.dapr.io/getting-started/install-dapr-cli/).
 
@@ -35,6 +35,12 @@ Verify the CLI is installed by restarting your terminal/command prompt and runni
 
 ```bash
 dapr -h
+```
+
+Install the Dapr Python SDK to create Python clients, servers, and virtual actors with Dapr.
+
+```bash
+pip install dapr
 ```
 
 ## Initialize Dapr in Local Mode
