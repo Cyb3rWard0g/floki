@@ -137,6 +137,6 @@ nav:
       - LLM-based Task Workflows: home/quickstarts/llm_workflows.md
       - Event-Driven Agentic Workflows: home/quickstarts/agentic_workflows.md
     - Concepts:
-      - Enter Floki!: home/concepts/floki.md
+      - Enter Floki: home/concepts/floki.md
       - Core Principles: home/concepts/principles.md
       - Agents: home/concepts/agents.md
