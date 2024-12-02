@@ -659,7 +659,7 @@
         
   
   <span class="md-ellipsis">
-    Enter Floki!
+    Enter Floki
   </span>
   
 
@@ -724,45 +724,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-powered-by-dapr" class="md-nav__link">
+  <a href="#1-agent-centric-design" class="md-nav__link">
     <span class="md-ellipsis">
-      1. Powered by Dapr
+      1. Agent-Centric Design
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-modular-component-architecture" class="md-nav__link">
+  <a href="#2-decoupled-infrastructure-design" class="md-nav__link">
     <span class="md-ellipsis">
-      2. Modular Component Architecture
+      2. Decoupled Infrastructure Design
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-virtual-actor-model-for-agents" class="md-nav__link">
+  <a href="#3-modular-component-model" class="md-nav__link">
     <span class="md-ellipsis">
-      3. Virtual Actor Model for Agents
+      3. Modular Component Model
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-message-driven-communication" class="md-nav__link">
+  <a href="#4-actor-based-model-for-agents" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Message-Driven Communication
+      4. Actor-Based Model for Agents
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-workflow-oriented-design" class="md-nav__link">
+  <a href="#5-message-driven-communication" class="md-nav__link">
     <span class="md-ellipsis">
-      5. Workflow-Oriented Design
+      5. Message-Driven Communication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-workflow-oriented-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Workflow-Oriented Design
     </span>
   </a>
   
@@ -842,45 +851,54 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-powered-by-dapr" class="md-nav__link">
+  <a href="#1-agent-centric-design" class="md-nav__link">
     <span class="md-ellipsis">
-      1. Powered by Dapr
+      1. Agent-Centric Design
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-modular-component-architecture" class="md-nav__link">
+  <a href="#2-decoupled-infrastructure-design" class="md-nav__link">
     <span class="md-ellipsis">
-      2. Modular Component Architecture
+      2. Decoupled Infrastructure Design
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-virtual-actor-model-for-agents" class="md-nav__link">
+  <a href="#3-modular-component-model" class="md-nav__link">
     <span class="md-ellipsis">
-      3. Virtual Actor Model for Agents
+      3. Modular Component Model
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-message-driven-communication" class="md-nav__link">
+  <a href="#4-actor-based-model-for-agents" class="md-nav__link">
     <span class="md-ellipsis">
-      4. Message-Driven Communication
+      4. Actor-Based Model for Agents
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-workflow-oriented-design" class="md-nav__link">
+  <a href="#5-message-driven-communication" class="md-nav__link">
     <span class="md-ellipsis">
-      5. Workflow-Oriented Design
+      5. Message-Driven Communication
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-workflow-oriented-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      6. Workflow-Oriented Design
     </span>
   </a>
   
@@ -910,41 +928,79 @@
 
 
 <h1 id="core-principles">Core Principles<a class="headerlink" href="#core-principles" title="Permanent link">&para;</a></h1>
-<h2 id="1-powered-by-dapr">1. Powered by Dapr<a class="headerlink" href="#1-powered-by-dapr" title="Permanent link">&para;</a></h2>
-<p>Floki leverages Dapr’s modular and scalable architecture to provide a foundation that simplifies:</p>
+<h2 id="1-agent-centric-design">1. Agent-Centric Design<a class="headerlink" href="#1-agent-centric-design" title="Permanent link">&para;</a></h2>
+<p>Floki is designed to place agents, powered by LLMs, at the core of task execution and workflow orchestration. This principle emphasizes:</p>
 <ul>
-<li>Service communication: Built-in APIs for service-to-service invocation reduce the complexity of connecting agents and services.</li>
-<li>Cloud integration: Deploy seamlessly across local, cloud, or hybrid environments.</li>
-<li>Event-driven collaboration: Agents communicate effectively through Pub/Sub messaging, enabling dynamic task distribution and real-time updates.</li>
+<li>LLM-Powered Agents: Floki enables the creation of agents that leverage LLMs for reasoning, dynamic decision-making, and natural language interactions.</li>
+<li>Adaptive Task Handling: Agents in Floki are equipped with flexible patterns like tool calling and reasoning loops (e.g., ReAct), allowing them to autonomously tackle complex and evolving tasks.</li>
+<li>Seamless Integration: Floki’s framework allows agents to act as modular, reusable building blocks that integrate seamlessly into workflows, whether they operate independently or collaboratively.</li>
 </ul>
-<h2 id="2-modular-component-architecture">2. Modular Component Architecture<a class="headerlink" href="#2-modular-component-architecture" title="Permanent link">&para;</a></h2>
-<p>Floki inherits Dapr’s pluggable architecture, allowing developers to:</p>
+<p>While Floki centers around agents, it also recognizes the versatility of using LLMs directly in deterministic workflows or simpler task sequences. In scenarios where the agent's built-in task-handling patterns, like <code>tool calling</code> or <code>ReAct</code> loops, are unnecessary, LLMs can act as core components for reasoning and decision-making. This flexibility ensures users can adapt Floki to suit diverse needs without being confined to a single approach.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Agents are not standalone; they are building blocks in larger, orchestrated workflows.</p>
+</div>
+<h2 id="2-decoupled-infrastructure-design">2. Decoupled Infrastructure Design<a class="headerlink" href="#2-decoupled-infrastructure-design" title="Permanent link">&para;</a></h2>
+<p>Floki ensures a clean separation between agents and the underlying infrastructure, emphasizing simplicity, scalability, and adaptability:</p>
 <ul>
-<li>Swap components like Pub/Sub systems (e.g., RabbitMQ → Kafka) or state stores (e.g., Redis → DynamoDB) without modifying application code.</li>
-<li>Experiment with different setups locally or in the cloud, ensuring flexibility and adaptability.</li>
-<li>Scale effortlessly by relying on modular, production-ready building blocks.</li>
+<li>Agent Simplicity: Agents focus purely on reasoning and task execution, while Pub/Sub messaging, routing, and validation are managed externally by modular infrastructure components.</li>
+<li>Scalable and Adaptable Systems: By offloading non-agent-specific responsibilities, Floki allows agents to scale independently and adapt seamlessly to new use cases or integrations.</li>
 </ul>
-<h2 id="3-virtual-actor-model-for-agents">3. Virtual Actor Model for Agents<a class="headerlink" href="#3-virtual-actor-model-for-agents" title="Permanent link">&para;</a></h2>
-<p>Floki uses Dapr’s Virtual Actor model to enable agents to act as:</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Decoupling infrastructure keeps agents focused on tasks while enabling seamless scalability and integration across systems.</p>
+</div>
+<p><img alt="" src="../../../img/home_concepts_principles_decoupled.png" /></p>
+<h2 id="3-modular-component-model">3. Modular Component Model<a class="headerlink" href="#3-modular-component-model" title="Permanent link">&para;</a></h2>
+<p>Floki utilizes <a href="https://docs.dapr.io/concepts/components-concept/">Dapr's pluggable component framework</a> and building blocks to simplify development and enhance flexibility:</p>
 <ul>
-<li>Stateful entities: Agents can retain context across interactions, ensuring continuity in workflows.</li>
-<li>Independent units: Each agent processes tasks sequentially, simplifying concurrency management.</li>
-<li>Scalable services: Agents scale seamlessly across nodes in a cluster, adapting to distributed environments.</li>
+<li>Building Blocks for Core Functionality: Dapr provides API building blocks, such as Pub/Sub messaging, state management, service invocation, and more, to address common microservice challenges and promote best practices.</li>
+<li>Interchangeable Components: Each building block operates on swappable components (e.g., Redis, Kafka, Azure CosmosDB), allowing you to replace implementations without changing application code.</li>
+<li>Seamless Transitions: Develop locally with default configurations and deploy effortlessly to cloud environments by simply updating component definitions.</li>
+<li>Scalable Foundations: Build resilient and adaptable architectures using Dapr’s modular, production-ready building blocks.</li>
 </ul>
-<h2 id="4-message-driven-communication">4. Message-Driven Communication<a class="headerlink" href="#4-message-driven-communication" title="Permanent link">&para;</a></h2>
-<p>Floki emphasizes the use of Pub/Sub messaging to empower both event-driven and deterministic workflows. This principle ensures:</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Developers can easily switch between different components (e.g., Redis to DynamoDB) based on their deployment environment, ensuring portability and adaptability.</p>
+</div>
+<p><img alt="" src="../../../img/home_concepts_principles_modular.png" /></p>
+<h2 id="4-actor-based-model-for-agents">4. Actor-Based Model for Agents<a class="headerlink" href="#4-actor-based-model-for-agents" title="Permanent link">&para;</a></h2>
+<p>Floki leverages <a href="https://docs.dapr.io/developing-applications/building-blocks/actors/actors-overview/">Dapr’s Virtual Actor model</a> to enable agents to function efficiently and flexibly within distributed environments. Each agent in Floki is instantiated as an instance of a class, wrapped and managed by a virtual actor. This design offers:</p>
 <ul>
-<li>Decoupled Architecture: Agents and services can communicate asynchronously, promoting scalability and flexibility.</li>
-<li>Event-Driven Interactions: Agents respond to real-time events, allowing workflows to adapt dynamically.</li>
-<li>Workflow Enablement: Pub/Sub acts as a backbone for coordinating agents in centralized or decentralized workflows.</li>
+<li>Stateful Agents: Virtual actors allow agents to store and recall information across tasks, maintaining context and continuity for workflows.</li>
+<li>Dynamic Lifecycle Management: Virtual actors are automatically instantiated when invoked and deactivated when idle. This eliminates the need for explicit creation or cleanup, ensuring resource efficiency and simplicity.</li>
+<li>Location Transparency: Agents can be accessed and operate seamlessly, regardless of where they are located in the system. The underlying runtime handles their mobility, enabling fault-tolerance and dynamic load balancing.</li>
+<li>Scalable Execution: Agents process one task at a time, avoiding concurrency issues, and scale dynamically across nodes to meet workload demands.</li>
 </ul>
-<h2 id="5-workflow-oriented-design">5. Workflow-Oriented Design<a class="headerlink" href="#5-workflow-oriented-design" title="Permanent link">&para;</a></h2>
-<p>Floki integrates Dapr’s Workflow API to orchestrate:</p>
+<p>This model ensures agents remain focused on their core logic, while the infrastructure abstracts complexities like state management, fault recovery, and resource optimization.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Floki’s use of virtual actors makes agents always addressable and highly scalable, enabling them to operate reliably and efficiently in distributed, high-demand environments.</p>
+</div>
+<h2 id="5-message-driven-communication">5. Message-Driven Communication<a class="headerlink" href="#5-message-driven-communication" title="Permanent link">&para;</a></h2>
+<p>Floki emphasizes the use of Pub/Sub messaging for event-driven communication between agents. This principle ensures:</p>
 <ul>
-<li>Deterministic workflows: Define repeatable processes for agents to follow.</li>
-<li>Dynamic decision-making: Combine rule-based logic with LLM-driven reasoning to handle complex, adaptive tasks.</li>
-<li>Multi-agent collaboration: Coordinate agents across workflows for shared goals and efficient task execution.</li>
+<li>Decoupled Architecture: Asynchronous communication for scalability and modularity.</li>
+<li>Real-Time Adaptability: Agents react dynamically to events for faster, more flexible task execution.</li>
+<li>Seamless Collaboration: Agents share updates, distribute tasks, and respond to events in a highly coordinated way.</li>
 </ul>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Pub/Sub messaging serves as the backbone for Floki’s event-driven workflows, enabling agents to communicate and collaborate in real time.</p>
+</div>
+<p><img alt="" src="../../../img/home_concepts_principles_message.png" /></p>
+<h2 id="6-workflow-oriented-design">6. Workflow-Oriented Design<a class="headerlink" href="#6-workflow-oriented-design" title="Permanent link">&para;</a></h2>
+<p>Floki embraces workflows as a foundational concept, integrating <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr Workflows</a> to support both deterministic and event-driven task orchestration. This dual approach enables robust and adaptive systems:</p>
+<ul>
+<li>Deterministic Workflows: Floki uses Dapr Workflows for stateful, predictable task sequences. These workflows ensure reliable execution, fault tolerance, and state persistence, making them ideal for structured, multi-step processes that require clear, repeatable logic.</li>
+<li>Event-Driven Workflows: By combining Dapr Workflows with Pub/Sub messaging, Floki supports workflows that adapt to real-time events. This facilitates decentralized, asynchronous collaboration between agents, allowing workflows to dynamically adjust to changing scenarios.</li>
+</ul>
+<p>By integrating these paradigms, Floki enables workflows that combine the reliability of deterministic execution with the adaptability of event-driven processes, ensuring flexibility and resilience in a wide range of applications.</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Floki workflows blend structured, predictable logic with the dynamic responsiveness of event-driven systems, empowering both centralized and decentralized workflows.</p>
+</div>
+<p><img alt="" src="../../../img/home_concepts_principles_workflows.png" /></p>
 
 
 

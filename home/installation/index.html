@@ -761,7 +761,7 @@
         
   
   <span class="md-ellipsis">
-    Enter Floki!
+    Enter Floki
   </span>
   
 
@@ -968,7 +968,8 @@ poetry<span class="w"> </span>install
 <p class="admonition-title">Info</p>
 <p>Make sure you have <a href="https://docs.docker.com/get-started/get-docker/">Docker</a> already installed. I use <a href="https://www.docker.com/products/docker-desktop/">Docker Desktop</a>.</p>
 </div>
-<p>Initialize Dapr locally to set up a self-hosted environment for development. This process installs Dapr sidecar binaries, runs essential services like Redis (state store and message broker) and Zipkin (observability), and prepares a default components folder. For detailed steps, see the official <a href="https://docs.dapr.io/getting-started/install-dapr-selfhost/">guide on initializing Dapr locally</a>.</p>
+<p>Initialize Dapr locally to set up a self-hosted environment for development. This process fetches and installs the Dapr sidecar binaries, runs essential services as Docker containers, and prepares a default components folder for your application. For detailed steps, see the official <a href="https://docs.dapr.io/getting-started/install-dapr-selfhost/">guide on initializing Dapr locally</a>.</p>
+<p><img alt="" src="../../img/home_installation_init.png" /></p>
 <p>To initialize the Dapr control plane containers and create a default configuration file, run:</p>
 <div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>init
 </code></pre></div>
