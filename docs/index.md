@@ -28,7 +28,7 @@ Dapr provides Floki with a unified programming model that simplifies the develop
 
     Install [`Floki`](https://github.com/Cyb3rWard0g/floki) with [`pip`](#) and set up your dapr environment in minutes
 
-    [:octicons-arrow-right-24: Installation](installation)
+    [:octicons-arrow-right-24: Installation](home/installation)
 
 -   :material-rocket-launch:{ .lg .middle } __Start experimenting__
 
@@ -36,7 +36,7 @@ Dapr provides Floki with a unified programming model that simplifies the develop
 
     Build your first agent and design a custom workflow to get started with Floki.
 
-    [:octicons-arrow-right-24: Quickstarts](quickstarts)
+    [:octicons-arrow-right-24: Quickstarts](home/quickstarts)
 
 -   :material-lightbulb-on:{ .lg .middle } __Learn more__
 
@@ -44,7 +44,7 @@ Dapr provides Floki with a unified programming model that simplifies the develop
 
     Learn more about Floki and its main components!
 
-    [:octicons-arrow-right-24: Concepts](#)
+    [:octicons-arrow-right-24: Concepts](home/concepts/floki)
 
 -   :material-scale-balance:{ .lg .middle } __Open Source, MIT__
 
