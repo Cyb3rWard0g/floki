@@ -7,7 +7,7 @@ name = "floki-ai"
 version = "0.2.0"
 description = "Agentic Workflows Made Simple"
 readme = "README.md"
-authors = [{ name = "Roberto Rodriguez"}]
+authors = [{ name = "Roberto Rodriguez" }]
 license = { text = "MIT License" }
 requires-python = ">=3.9, <3.13"
 classifiers = [
@@ -16,7 +16,7 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9"
+    "Programming Language :: Python :: 3.9",
 ]
 
 dependencies = [
@@ -28,7 +28,10 @@ dependencies = [
     "sentence-transformers==3.3.1",
     "neo4j==5.26.0",
     "Jinja2==3.1.4",
-    "azure-identity==1.19.0"
+    "azure-identity==1.19.0",
+    "dapr==1.14.0",
+    "dapr-ext-fastapi==1.14.0",
+    "dapr-ext-workflow==0.5.0",
 ]
 
 [project.urls]
@@ -66,6 +69,9 @@ Jinja2 = "3.1.4"
 azure-identity = "1.19.0"
 tornado = "^6.4.2"
 starlette = "^0.40.0"
+dapr-ext-workflow = "0.5.0"
+dapr-ext-fastapi = "1.14.0"
+dapr = "1.14.0"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.4"
