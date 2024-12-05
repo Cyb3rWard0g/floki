@@ -57,3 +57,30 @@ Verify you have container instances with `daprio/dapr`, `openzipkin/zipkin`, and
 ```bash
 docker ps
 ```
+
+## Enable Redis Insights
+
+Dapr uses [Redis](https://docs.dapr.io/reference/components-reference/supported-state-stores/setup-redis/) by default for state management and pub/sub messaging, which are fundamental to Floki's agentic workflows. These capabilities enable the following:
+
+* Viewing Pub/Sub Messages: Monitor and inspect messages exchanged between agents in event-driven workflows.
+* Inspecting State Information: Access and analyze shared state data among agents.
+* Debugging and Monitoring Events: Track workflow events in real time to ensure smooth operations and identify issues.
+
+To make these insights more accessible, you can leverage Redis Insight.
+
+```bash
+docker run --rm -d --name redisinsight -p 5540:5540 redis/redisinsight:latest
+```
+
+Once running, access the Redis Insight interface at `http://localhost:5540/`
+
+### Connection Configuration
+
+* Port: 6379
+* Host (Linux): 172.17.0.1
+* Host (Windows/Mac): docker.host.internal
+
+Redis Insight makes it easy to visualize and manage the data powering your agentic workflows, ensuring efficient debugging, monitoring, and optimization.
+
+![](../img/home_installation_redis_dashboard.png)
+
