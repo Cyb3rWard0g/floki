@@ -6,7 +6,7 @@
 Event-Driven Agentic Workflows in `Floki` take advantage of an event-driven system using pub/sub messaging and a shared message bus. Agents operate as autonomous entities that respond to events dynamically, enabling real-time interactions and collaboration. These workflows are highly adaptable, allowing agents to communicate, share tasks, and reason through events triggered by their environment. This approach is best suited for decentralized systems requiring dynamic agent collaboration across distributed applications.
 
 !!! tip
-    We will demonstrate this concept using the [Multi-Agent Workflow Guide](https://github.com/Cyb3rWard0g/floki/tree/main/cookbook/workflows_event_driven) from our Cookbook, which outlines a step-by-step guide to implementing a basic agentic workflow.
+    We will demonstrate this concept using the [Multi-Agent Workflow Guide](https://github.com/Cyb3rWard0g/floki/tree/main/cookbook/multi_agent_workflow) from our Cookbook, which outlines a step-by-step guide to implementing a basic agentic workflow.
 
 ## Agents as Services
 
