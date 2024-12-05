@@ -504,6 +504,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#enable-redis-insights" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enable Redis Insights
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Enable Redis Insights">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connection-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connection Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -679,7 +703,7 @@
         
   
   <span class="md-ellipsis">
-    Event-Driven Agentic Workflows
+    Multi-Agent Workflows
   </span>
   
 
@@ -916,6 +940,30 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#enable-redis-insights" class="md-nav__link">
+    <span class="md-ellipsis">
+      Enable Redis Insights
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Enable Redis Insights">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#connection-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Connection Configuration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -976,6 +1024,25 @@ poetry<span class="w"> </span>install
 <p>Verify you have container instances with <code>daprio/dapr</code>, <code>openzipkin/zipkin</code>, and <code>redis</code> images running:</p>
 <div class="language-bash highlight"><pre><span></span><code>docker<span class="w"> </span>ps
 </code></pre></div>
+<h2 id="enable-redis-insights">Enable Redis Insights<a class="headerlink" href="#enable-redis-insights" title="Permanent link">&para;</a></h2>
+<p>Dapr uses <a href="https://docs.dapr.io/reference/components-reference/supported-state-stores/setup-redis/">Redis</a> by default for state management and pub/sub messaging, which are fundamental to Floki's agentic workflows. These capabilities enable the following:</p>
+<ul>
+<li>Viewing Pub/Sub Messages: Monitor and inspect messages exchanged between agents in event-driven workflows.</li>
+<li>Inspecting State Information: Access and analyze shared state data among agents.</li>
+<li>Debugging and Monitoring Events: Track workflow events in real time to ensure smooth operations and identify issues.</li>
+</ul>
+<p>To make these insights more accessible, you can leverage Redis Insight.</p>
+<div class="language-bash highlight"><pre><span></span><code>docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-d<span class="w"> </span>--name<span class="w"> </span>redisinsight<span class="w"> </span>-p<span class="w"> </span><span class="m">5540</span>:5540<span class="w"> </span>redis/redisinsight:latest
+</code></pre></div>
+<p>Once running, access the Redis Insight interface at <code>http://localhost:5540/</code></p>
+<h3 id="connection-configuration">Connection Configuration<a class="headerlink" href="#connection-configuration" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Port: 6379</li>
+<li>Host (Linux): 172.17.0.1</li>
+<li>Host (Windows/Mac): docker.host.internal</li>
+</ul>
+<p>Redis Insight makes it easy to visualize and manage the data powering your agentic workflows, ensuring efficient debugging, monitoring, and optimization.</p>
+<p><img alt="" src="../../img/home_installation_redis_dashboard.png" /></p>
 
 
 
