@@ -2,9 +2,9 @@ from floki.storage.daprstores.statestore import DaprStateStore
 from floki.service.fastapi.base import ServiceBase
 from dapr.conf import settings as dapr_settings
 from dapr.ext.fastapi import DaprApp
-from dapr.clients import DaprClient
-from pydantic import Field
-from typing import Optional, Any, Dict
+from dapr.aio.clients import DaprClient
+from pydantic import BaseModel, Field
+from typing import Optional, Any, Dict, Union
 from abc import ABC
 import json
 import os
@@ -48,9 +48,9 @@ class DaprEnabledService(ServiceBase, ABC):
 
         # Initialize DaprApp for pub/sub and DaprClient for state and messaging
         self.dapr_app = DaprApp(self.app)
-        self.dapr_client = DaprClient(address=self.daprGrpcAddress)
 
-        logger.info(f"{self.name} DaprEnabledService initialized with Dapr gRPC address {self.daprGrpcAddress}.")
+        logger.info(f"{self.name} DaprEnabledService initialized.")
+        logger.info(f"Dapr gRPC address: {self.daprGrpcAddress}.")
     
     async def get_metadata_from_store(self, store: DaprStateStore, key: str) -> Optional[dict]:
         """
@@ -70,7 +70,7 @@ class DaprEnabledService(ServiceBase, ABC):
             logger.error(f"Error retrieving metadata for key '{key}' from store '{store.store_name}': {e}")
             return None
     
-    async def publish_message(self, topic_name: str, pubsub_name: str, message: Any, metadata: Optional[Dict[str, Any]] = None):
+    async def publish_message(self, topic_name: str, pubsub_name: str, message: Any, metadata: Optional[Dict[str, Any]] = None) -> None:
         """
         Helper function to publish a message to a specific topic with optional metadata.
 
@@ -81,20 +81,29 @@ class DaprEnabledService(ServiceBase, ABC):
             metadata (Optional[Dict[str, Any]]): Additional metadata to include in the publish event.
 
         Raises:
+            ValueError: If the message contains non-serializable data.
             Exception: If publishing the message fails.
         """
         try:
-            # Convert message to JSON string
-            json_message = json.dumps(message if message is not None else {})
-
-            with DaprClient(address=self.daprGrpcAddress) as client:
-                client.publish_event(
+            # Serialize the message, handling non-serializable data
+            try:
+                json_message = json.dumps(message if message is not None else {})
+            except TypeError as te:
+                logger.error(f"Failed to serialize message: {message}. Error: {te}")
+                raise ValueError(f"Message contains non-serializable data: {te}")
+            
+            # Publishing message
+            async with DaprClient(address=self.daprGrpcAddress) as client:
+                await client.publish_event(
                     pubsub_name=pubsub_name,
                     topic_name=topic_name,
                     data=json_message,
                     data_content_type='application/json',
                     publish_metadata=metadata or {}
                 )
+            
+            logger.info(f"Message successfully published to topic '{topic_name}' on pub/sub '{pubsub_name}'.")
+            logger.debug(f"Serialized Message: {json_message}, Metadata: {metadata}")
         except Exception as e:
             logger.error(
                 f"Error publishing message to topic '{topic_name}' on pub/sub '{pubsub_name}'. "
@@ -102,7 +111,7 @@ class DaprEnabledService(ServiceBase, ABC):
             )
             raise Exception(f"Failed to publish message to topic '{topic_name}' on pub/sub '{pubsub_name}': {str(e)}")
     
-    async def publish_event_message(self, topic_name: str, pubsub_name: str, source: str, message_type: str, message: dict, **kwargs) -> None:
+    async def publish_event_message(self, topic_name: str, pubsub_name: str, source: str, message: Union[BaseModel, dict], message_type: Optional[str] = None, **kwargs,) -> None:
         """
         Publishes an event message to a specified topic with dynamic metadata.
 
@@ -110,10 +119,24 @@ class DaprEnabledService(ServiceBase, ABC):
             topic_name (str): The topic to publish the message to.
             pubsub_name (str): The pub/sub component to use.
             source (str): The source of the message (e.g., service or agent name).
-            message_type (str): The type of the message (e.g., "AgentActionResultMessage").
-            message (dict): The content of the message to publish.
+            message (Union[BaseModel, dict]): The message content as a Pydantic model or dictionary.
+            message_type (Optional[str]): The type of the message. Required if `message` is a dictionary.
             **kwargs: Additional metadata fields to include in the message.
         """
+        if isinstance(message, BaseModel):
+            # Derive `message_type` from the Pydantic model class name
+            message_type = message.__class__.__name__
+            message_dict = message.model_dump()
+        elif isinstance(message, dict):
+            # Require `message_type` for dictionary messages
+            if not message_type:
+                raise ValueError(
+                    "message_type must be provided when message is a dictionary."
+                )
+            message_dict = message
+        else:
+            raise ValueError("Message must be a Pydantic BaseModel or a dictionary.")
+
         # Base metadata
         base_metadata = {
             "cloudevent.type": message_type,
@@ -122,14 +145,14 @@ class DaprEnabledService(ServiceBase, ABC):
 
         # Merge additional metadata from kwargs
         metadata = {**base_metadata, **kwargs}
-        
+
+        logger.info(f"{source} preparing to publish '{message_type}' to topic '{topic_name}'.")
+        logger.debug(f"Message: {message_dict}, Metadata: {metadata}")
+
         # Publish the message
         await self.publish_message(
             topic_name=topic_name,
             pubsub_name=pubsub_name,
-            message=message,
+            message=message_dict,
             metadata=metadata,
         )
-
-        logger.info(f"{source} successfully published {message_type} to topic '{topic_name}'!.")
-        logger.debug(f"Message: {message}, Metadata: {metadata}")
