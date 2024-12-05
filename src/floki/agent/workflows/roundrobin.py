@@ -1,10 +1,14 @@
 from floki.agent.workflows.base import AgenticWorkflowService
-from floki.types import DaprWorkflowContext, UserMessage
+from floki.types import DaprWorkflowContext, BaseMessage
+from typing import Dict, Any, Optional
 from datetime import timedelta
-from typing import Dict, Any
+from pydantic import BaseModel
 import logging
 
 logger = logging.getLogger(__name__)
+
+class TriggerActionMessage(BaseModel):
+    task: Optional[str] = None
 
 class RoundRobinWorkflowService(AgenticWorkflowService):
     """
@@ -85,26 +89,21 @@ class RoundRobinWorkflowService(AgenticWorkflowService):
 
     async def process_input(self, message: str):
         """
-        Validates and serializes the input message for the workflow.
+        Processes the input message for the workflow.
 
         Args:
-            message (str): The input message to process.
+            message (str): The user-provided input message.
         Returns:
-            dict: Serialized UserMessage.
+            dict: Serialized UserMessage with the content.
         """
-        return UserMessage(content=message).model_dump()
+        return {"role":"user", "content": message}
     
     async def broadcast_input_message(self, **kwargs):
         """
         Broadcasts a message to all agents.
-
-        Publishes the message with metadata for round-robin interactions.
         """
         message = {key: value for key, value in kwargs.items()}
-        await self.publish_message_to_all(
-            message_type="StartMessage",
-            message=message
-        )
+        await self.broadcast_message(message=BaseMessage(**message))
     
     async def select_next_speaker(self, iteration: int) -> str:
         """
@@ -140,15 +139,14 @@ class RoundRobinWorkflowService(AgenticWorkflowService):
     
     async def trigger_agent(self, name: str, instance_id: str) -> None:
         """
-        Triggers an agent to perform a task.
+        Triggers the specified agent to perform its activity.
 
         Args:
-            name (str): The target agent's name.
-            instance_id (str): The current workflow instance ID.
+            name (str): Name of the agent to trigger.
+            instance_id (str): Workflow instance ID for context.
         """
-        await self.publish_message_to_agent(
+        await self.send_message_to_agent(
             name=name,
-            message_type="TriggerActionMessage",
-            message=None,
+            message=TriggerActionMessage(task=None),
             workflow_instance_id=instance_id,
         )

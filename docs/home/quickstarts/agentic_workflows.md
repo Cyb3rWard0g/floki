@@ -1,11 +1,15 @@
-# Event-Driven Agentic Workflows
+# Multi-Agent Event-Driven Workflows
 
 !!! info
     This quickstart requires `Dapr CLI` and `Docker`. You must have your [local Dapr environment set up](../installation.md).
 
 Event-Driven Agentic Workflows in `Floki` take advantage of an event-driven system using pub/sub messaging and a shared message bus. Agents operate as autonomous entities that respond to events dynamically, enabling real-time interactions and collaboration. These workflows are highly adaptable, allowing agents to communicate, share tasks, and reason through events triggered by their environment. This approach is best suited for decentralized systems requiring dynamic agent collaboration across distributed applications.
 
+!!! tip
+    We will demonstrate this concept using the [Multi-Agent Workflow Guide](https://github.com/Cyb3rWard0g/floki/tree/main/cookbook/workflows_event_driven) from our Cookbook, which outlines a step-by-step guide to implementing a basic agentic workflow.
+
 ## Agents as Services
+
 In `Floki`, agents can be exposed as services, making them reusable, modular, and easy to integrate into event-driven workflows. Each agent runs as a microservice, wrapped in a [Dapr-enabled FastAPI server](https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/). This design allows agents to operate independently while communicating through [Dapr’s pub/sub](https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-overview/) messaging and interacting with state stores or other services.
 
 The way to structure such a project is straightforward. We organize our services into a directory that contains individual folders for each agent, along with a components/ directory for Dapr configurations. Each agent service includes its own app.py file, where the FastAPI server and the agent logic are defined.
@@ -92,17 +96,17 @@ Types of Agentic Workflows:
 * **RoundRobin**: Cycles through agents in a fixed order, ensuring each agent has an equal opportunity to participate in tasks.
 * **LLM-based**: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.
 
-Next, we’ll define a `Random Agentic Workflow Service` to demonstrate how this concept can be implemented.
+Next, we’ll define a `RoundRobin Agentic Workflow Service` to demonstrate how this concept can be implemented.
 
 ```python
-from floki import RandomWorkflowService
+from floki import RoundRobinWorkflowService
 from dotenv import load_dotenv
 import asyncio
 import logging
 
 async def main():
     try:
-        random_workflow_service = RandomWorkflowService(
+        roundrobin_workflow_service = RoundRobinWorkflowService(
             name="Orchestrator",
             message_bus_name="messagepubsub",
             agents_state_store_name="agentstatestore",
@@ -112,7 +116,7 @@ async def main():
             max_iterations=2
         )
 
-        await random_workflow_service.start()
+        await roundrobin_workflow_service.start()
     except Exception as e:
         print(f"Error starting service: {e}")
 
@@ -128,8 +132,9 @@ Unlike `Agents as Services`, the `Agentic Workflow Service` does not require an 
 
 * **Max Iterations**: Defines the maximum number of iterations the workflow will perform, ensuring controlled task execution and preventing infinite loops.
 * **Workflow State Store Name**: Specifies the state store used to persist the workflow’s state, allowing for reliable recovery and tracking of workflow progress.
+* **LLM Inference Client**: Although an individual agent is not required, the LLM-based Agentic Workflow Service depends on an LLM Inference Client. By default, it uses the [OpenAIChatClient()](https://github.com/Cyb3rWard0g/floki/blob/main/src/floki/llm/openai/chat.py) from the Floki library.
 
-These differences reflect the distinct purpose of the Agentic Workflow Service, which acts as a centralized orchestrator rather than an individual agent service.
+These differences reflect the distinct purpose of the Agentic Workflow Service, which acts as a centralized orchestrator rather than an individual agent service. The inclusion of the LLM Inference Client in the LLM-based workflows allows the orchestrator to leverage natural language processing for intelligent task routing and decision-making.
 
 ## The Multi-App Run template file
 
@@ -182,7 +187,7 @@ apps:
   daprGRPCPort: 50003
 
 - appId: WorkflowApp
-  appDirPath: ./services/workflow-random/
+  appDirPath: ./services/workflow-llm/
   appPort: 8004
   command: ["python3", "app.py"]
   daprGRPCPort: 50004
@@ -201,7 +206,21 @@ To execute the command, ensure you are in the root directory where the dapr.yaml
 dapr run -f .
 ```
 
-This command reads the dapr.yaml file and starts all the services specified in the template.
+This command reads the `dapr.yaml` file and starts all the services specified in the template.
+
+## Monitor Services Initialization
+
+- Verify console Logs: Each service outputs logs to confirm successful initialization.
+
+![](../../img/workflows_roundrobin_agent_initialization.png)
+
+- Verify Redis entries: Access the Redis Insight interface at `http://localhost:5540/`
+
+![](../../img/workflows_roundrobin_redis_agents_metadata.png)
+
+- Verify your agents are healthy: Check the console logs. You should see the following:
+
+![](../../img/workflows_roundrobin_agents_health.png)
 
 ## Start Workflow via an HTTP Request
 
@@ -212,7 +231,17 @@ Here’s an example of how to start the workflow using `curl`:
 ```bash
 curl -i -X POST http://localhost:8004/RunWorkflow \
     -H "Content-Type: application/json" \
-    -d '{"message": "How to get to Mordor? Let's all help!"}'
+    -d '{"message": "How to get to Mordor? Lets all help!"}'
+```
+
+```
+HTTP/1.1 200 OK
+date: Thu, 05 Dec 2024 07:46:19 GMT
+server: uvicorn
+content-length: 104
+content-type: application/json
+
+{"message":"Workflow initiated successfully.","workflow_instance_id":"422ab3c3f58f4221a36b36c05fefb99b"}
 ```
 
 In this example:
@@ -221,21 +250,78 @@ In this example:
 * The message parameter is passed as input to the workflow, which the agents will process.
 * This command demonstrates how to interact with the Agentic Workflow Service to kick off a new workflow.
 
-If you check the console where you started all the service servers, you will see the following output once the system reaches its maximum number of iterations.
+## Monitoring Workflow Execution
 
-![](../../img/workflows_random_event_driven.png)
+- Check console logs to trace activities in the workflow.
 
-## Monitor Workflow Execution
+![](../../img/workflows_roundrobin_console_logs_activities.png)
 
-As mentioned earlier, when we ran dapr init, Dapr initialized, a `Zipkin` container instance, used for observability and tracing.
-We can use the Zipkin container to monitor our workflow execution. To do this, open your browser and go to `http://localhost:9411/zipkin/`. From there:
+- Verify Redis entries: Access the Redis Insight interface at `http://localhost:5540/`
 
-Click on `Find a Trace` and then `Run Query` to search for traces.
+![](../../img/workflows_roundrobin_redis_broadcast_channel.png)
 
-![](../../img/workflows_random_zipkin_portal.png)
+- As mentioned earlier, when we ran dapr init, Dapr initialized, a `Zipkin` container instance, used for observability and tracing. Open `http://localhost:9411/zipkin/` in your browser to view traces > Find a Trace > Run Query.
 
-Select the trace entry with multiple spans labeled `<workflow name>: /taskhubsidecarservice/startinstance.`
+![](../../img/workflows_roundrobin_zipkin_portal.png)
 
-When you open this entry, you’ll see details about how each task or activity in the workflow was executed. If any task failed, the error will also be visible here.
+- Select the trace entry with multiple spans labeled `<workflow name>: /taskhubsidecarservice/startinstance.`. When you open this entry, you’ll see details about how each task or activity in the workflow was executed. If any task failed, the error will also be visible here.
 
-![](../../img/workflows_random_zipkin_spans.png)
+![](../../img/workflows_roundrobin_zipkin_spans.png)
+
+- Check console logs to validate if workflow was executed successfuly.
+
+![](../../img/workflows_roundrobin_console_logs_complete.png)
+
+## Customizing the Workflow
+
+The default setup uses the [workflow-roundrobin service](services/workflow-roundrobin/app.py), which processes agent tasks in a `round-robin` order. However, you can easily switch to a different workflow type by updating the `dapr.yaml` file.
+
+### Available Workflow Options
+
+* **RoundRobin**: Cycles through agents in a fixed order, ensuring each agent gets an equal opportunity to process tasks.
+* **Random**: Selects an agent randomly for each task.
+* **LLM-based**: Uses a large language model (e.g., GPT-4o) to determine the most suitable agent based on the message and context.
+
+### Switching to the LLM-based Workflow
+
+- Set Up Environment Variables: Create an `.env` file to securely store your API keys and other sensitive information. For example:
+
+```
+OPENAI_API_KEY="your-api-key"
+OPENAI_BASE_URL="https://api.openai.com/v1"
+```
+
+- Update dapr.yaml: Modify the appDirPath for the workflow service to point to the workflow-llm directory:
+
+```yaml
+- appId: WorkflowApp
+  appDirPath: ./services/workflow-llm/
+  appPort: 8004
+  command: ["python3", "app.py"]
+  daprGRPCPort: 50004
+```
+
+- Load Environment Variables: Ensure your service script uses Python-dotenv to load these variables automatically:
+
+```python
+from dotenv import load_dotenv
+load_dotenv()  # Load variables from .env
+```
+
+With these updates, the workflow will use the `LLM` to intelligently decide which agent to activate.
+
+### Reset Redis Database
+
+1. Access the Redis Insight interface at `http://localhost:5540/`
+2. In the search bar type `*` to select all items in the database.
+3. Click on `Bulk Actions` > `Delete` > `Delete`
+
+![](../../img/workflows_roundrobin_redis_reset.png)
+
+You should see an empty database now:
+
+![](../../img/workflows_roundrobin_redis_empty.png)
+
+### Testing the LLM-based Workflow
+
+Restart the services with `dapr run -f` . and send a message to the workflow. Ensure your `.env` file is configured correctly and contains the necessary credentials.
