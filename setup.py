@@ -22,7 +22,7 @@ setup(
     install_requires=[
         "pydantic==2.10.2",
         "chromadb==0.5.20",
-        "openai==1.55.2",
+        "openai==1.56.1",
         "openapi-pydantic==0.5.0",
         "openapi-schema-pydantic==1.2.4",
         "regex>=2023.12.25",
