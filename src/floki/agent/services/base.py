@@ -1,25 +1,25 @@
 from dapr.actor.runtime.config import ActorRuntimeConfig, ActorTypeConfig, ActorReentrancyConfig
-from fastapi import FastAPI, HTTPException, Response, status
+from dapr.actor.runtime.runtime import ActorRuntime
+from dapr.ext.fastapi import DaprActor
+from dapr.actor import ActorProxy, ActorId
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, status
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from floki.agent.services.messaging import parse_cloudevent
 from floki.storage.daprstores.statestore import DaprStateStore
 from floki.agent.actor import AgentActorBase, AgentActorInterface
 from floki.service.fastapi import DaprEnabledService
 from floki.types.agent import AgentActorMessage
 from floki.agent import AgentBase
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
-from dapr.actor.runtime.runtime import ActorRuntime
-from dapr.ext.fastapi import DaprActor
-from dapr.actor import ActorProxy, ActorId
-from pydantic import Field, model_validator, ConfigDict
+from pydantic import BaseModel, Field, model_validator, ConfigDict
+from typing import Optional, Any, Union
 from contextlib import asynccontextmanager
 from datetime import timedelta
-from typing import Optional, Any, Callable, TypeVar, Union, List
+from inspect import signature
 import json
 import logging
 
 logger = logging.getLogger(__name__)
-
-T = TypeVar("T", bound=Callable)
 
 class AgentServiceBase(DaprEnabledService):
     """
@@ -195,205 +195,191 @@ class AgentServiceBase(DaprEnabledService):
             logger.error(f"Failed to retrieve messages for {self.actor_name}: {e}")
             raise HTTPException(status_code=500, detail=f"Error retrieving messages: {str(e)}")
     
-    async def publish_message_to_all(self, message_type: Any, message: dict, **kwargs) -> None:
+    async def broadcast_message(self, message: Union[BaseModel, dict], **kwargs) -> None:
         """
-        Publishes a message to all agents on the configured broadcast topic.
+        Sends a message to all agents.
 
         Args:
-            message_type (str): The type of the message (e.g., "AgentActionResultMessage").
-            message (dict): The content of the message to broadcast.
+            message (Union[BaseModel, dict]): The message content as a Pydantic model or dictionary.
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            # Retrieve metadata for all agents
             agents_metadata = await self.get_agents_metadata()
             if not agents_metadata:
                 logger.warning("No agents available for broadcast.")
                 return
-            
-            logger.info(f"{self.agent.name} sending {message_type} to all agents.")
 
-            # Use publish_event_message for broadcasting
+            logger.info(f"{self.agent.name} preparing to broadcast message to all agents.")
+
             await self.publish_event_message(
                 topic_name=self.broadcast_topic_name,
                 pubsub_name=self.message_bus_name,
                 source=self.agent.name,
-                message_type=message_type,
                 message=message,
                 **kwargs,
             )
-        
         except Exception as e:
-            logger.error(f"Failed to send broadcast message of type {message_type}: {e}", exc_info=True)
+            logger.error(f"Failed to broadcast message: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error broadcasting message: {str(e)}")
-    
-    async def publish_message_to_agent(self, name: str, message_type: Any, message: dict, **kwargs) -> None:
+
+    async def send_message_to_agent(self, name: str, message: Union[BaseModel, dict], **kwargs) -> None:
         """
-        Publishes a message to a specific agent.
+        Sends a message to a specific agent.
 
         Args:
             name (str): The name of the target agent.
-            message_type (str): The type of the message (e.g., "TriggerActionMessage").
-            message (dict): The content of the message.
+            message (Union[BaseModel, dict]): The message content as a Pydantic model or dictionary.
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            # Retrieve metadata for all agents
             agents_metadata = await self.get_agents_metadata()
             if name not in agents_metadata:
                 raise HTTPException(status_code=404, detail=f"Agent {name} not found.")
 
-            # Extract agent-specific metadata
             agent_metadata = agents_metadata[name]
+            logger.info(f"{self.agent.name} preparing to send message to agent '{name}'.")
 
-            logger.info(f"{self.agent.name} sending {message_type} to agent {name}.")
-
-            # Use publish_event_message for targeting a specific agent
             await self.publish_event_message(
                 topic_name=agent_metadata["topic_name"],
                 pubsub_name=agent_metadata["pubsub_name"],
                 source=self.agent.name,
-                message_type=message_type,
                 message=message,
                 **kwargs,
             )
-
         except Exception as e:
-            logger.error(f"Failed to publish message to agent {name}: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error publishing message to agent: {str(e)}")
+            logger.error(f"Failed to send message to agent '{name}': {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error sending message to agent '{name}': {str(e)}")
     
-    async def publish_results_message(self, message_type: Any, message: dict, **kwargs) -> None:
+    async def publish_task_result(self, message: Union[BaseModel, dict], **kwargs) -> None:
         """
-        Publishes a message with results to a specific topic.
+        Publishes task results to the results topic.
 
         Args:
-            message_type (str): The type of the message (e.g., "TaskResultMessage").
-            message (dict): The content of the message to publish.
+            message (Union[BaseModel, dict]): The task result as a Pydantic model or dictionary.
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            logger.info(f"{self.agent.name} sending {message_type} to task results topic.")
+            logger.info(f"{self.agent.name} preparing to publish task results.")
 
-            # Use publish_event_message for publishing results
             await self.publish_event_message(
                 topic_name=self.task_results_topic_name,
                 pubsub_name=self.message_bus_name,
                 source=self.agent.name,
-                message_type=message_type,
                 message=message,
                 **kwargs,
             )
-
         except Exception as e:
-            logger.error(f"Failed to publish results message of type {message_type} to topic '{self.task_results_topic_name}': {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error publishing results message: {str(e)}")
+            logger.error(f"Failed to publish task result: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error publishing task result: {str(e)}")
     
     def register_message_routes(self) -> None:
         """
         Dynamically register message handlers and the Dapr /subscribe endpoint.
         """
+        def register_subscription(pubsub_name: str, topic_name: str, dead_letter_topic: Optional[str] = None) -> dict:
+            """Ensure a subscription exists or create it if it doesn't."""
+            subscription = next(
+                (
+                    sub
+                    for sub in self.dapr_app._subscriptions
+                    if sub["pubsubname"] == pubsub_name and sub["topic"] == topic_name
+                ),
+                None,
+            )
+            if subscription is None:
+                subscription = {
+                    "pubsubname": pubsub_name,
+                    "topic": topic_name,
+                    "routes": {"rules": []},
+                    **({"deadLetterTopic": dead_letter_topic} if dead_letter_topic else {}),
+                }
+                self.dapr_app._subscriptions.append(subscription)
+                logger.info(f"Created new subscription for pubsub='{pubsub_name}', topic='{topic_name}'")
+            return subscription
+
+        def add_subscription_rule(subscription: dict, match_condition: str, route: str) -> None:
+            """Add a routing rule to an existing subscription."""
+            rule = {"match": match_condition, "path": route}
+            if rule not in subscription["routes"]["rules"]:
+                subscription["routes"]["rules"].append(rule)
+                logger.info(f"Added match condition: {match_condition}")
+                logger.debug(f"Rule: {rule}")
+
+        def create_dependency_injector(model):
+            """Factory to create a dependency injector for a specific message model."""
+            async def dependency_injector(request: Request):
+                if not model:
+                    raise ValueError("No message model provided for dependency injection.")
+                logger.info(f"Using model '{model.__name__}' for this request.")
+                message, metadata, message_type = await parse_cloudevent(request, model)
+                dependencies = {
+                    "message": message,
+                    "source": metadata.get("source"),
+                    "type": message_type,
+                    "headers": metadata.get("headers", {}),
+                }
+                return dependencies
+            return dependency_injector
+        
+        # Define the handler wrapper within a factory function to capture the method correctly
+        def create_wrapped_method(method):
+            async def wrapped_method(dependencies: dict = Depends(dependency_injector)):
+                try:
+                    # Validate expected parameters
+                    handler_signature = signature(method)
+                    expected_params = {
+                        key: value for key, value in dependencies.items()
+                        if key in handler_signature.parameters
+                    }
+
+                    # Call the method directly
+                    result = await method(**expected_params)
+
+                    # Wrap non-Response objects
+                    if not isinstance(result, Response):
+                        logger.warning("Handler returned non-Response object; wrapping it in a Response.")
+                        result = Response(content=str(result), status_code=200)
+
+                    return result
+                except Exception as e:
+                    logger.error(f"Error invoking handler: {e}", exc_info=True)
+                    return Response(content=f"Internal Server Error: {str(e)}", status_code=500)
+            return wrapped_method
+
         for method_name in dir(self):
             method = getattr(self, method_name, None)
             if callable(method) and hasattr(method, "_is_message_handler"):
-                # Retrieve metadata from the decorator
-                router_data = method._message_router_data
-                pubsub_name = router_data.get("pubsub") or self.message_bus_name
-                is_broadcast = router_data.get("is_broadcast", False)
+                try:
+                    # Retrieve metadata from the decorator
+                    router_data = method._message_router_data.copy()
+                    pubsub_name = router_data.get("pubsub") or self.message_bus_name
+                    is_broadcast = router_data.get("is_broadcast", False)
+                    topic_name = router_data.get("topic") or (self.agent.name if not is_broadcast else self.broadcast_topic_name)
+                    route = router_data.get("route") or f"/events/{pubsub_name}/{topic_name}/{method_name}"
+                    dead_letter_topic = router_data.get("dead_letter_topic")
+                    message_model = router_data.get("message_model")
 
-                # Dynamically assign topic_name to self.agent.name if not explicitly provided
-                topic_name = router_data.get("topic")
-                if not topic_name and not is_broadcast:
-                    topic_name = self.agent.name
-                elif is_broadcast:
-                    topic_name = self.broadcast_topic_name
+                    # Validate message model presence
+                    if not message_model:
+                        raise ValueError(f"Message model is missing for handler '{method_name}'.")
 
-                # Extend route with method name for uniqueness
-                route = router_data.get("route") or (f"/events/{pubsub_name}/{topic_name}/{method_name}" if topic_name else None)
-                message_type = router_data.get("message_type")
-                dead_letter_topic = router_data.get("dead_letter_topic")
-                custom_rules = router_data.get("rules")
+                    logger.debug(f"Registering route '{route}' for method '{method_name}' with parameters: {list(router_data.keys())}")
 
-                # Validation: Ensure a route is provided for standalone handlers
-                if not route:
-                    raise ValueError(
-                        f"Method '{method_name}' must define a 'route' or be tied to a pub/sub topic."
-                    )
+                    # Ensure the subscription exists and add the rule
+                    subscription = register_subscription(pubsub_name, topic_name, dead_letter_topic)
+                    add_subscription_rule(subscription, f"event.type == '{message_model.__name__}'", route)
 
-                # Register the route in FastAPI
-                self.app.add_api_route(route, method, methods=["POST"], tags=["PubSub"])
-                handler_type = "broadcast" if is_broadcast else "standard"
-                logger.info(f"Registered {handler_type} POST route for '{method_name}'")
-                logger.info(f"Route: {route}")
+                    # Create the dependency injector
+                    dependency_injector = create_dependency_injector(message_model)
 
-                # Register the subscription only if `topic_name` is explicitly provided or set dynamically
-                if topic_name:
-                    subscription = next(
-                        (sub for sub in self.dapr_app._subscriptions if sub["pubsubname"] == pubsub_name and sub["topic"] == topic_name),
-                        None,
-                    )
-                    if subscription is None:
-                        subscription = {
-                            "pubsubname": pubsub_name,
-                            "topic": topic_name,
-                            "routes": {"rules": []},  # Default route removed
-                            **({"deadLetterTopic": dead_letter_topic} if dead_letter_topic else {}),
-                        }
-                        self.dapr_app._subscriptions.append(subscription)
+                    # Define the handler that wraps the original method
+                    wrapped_method = create_wrapped_method(method)
 
-                    # Add routing rule for `message_type` or `rules`
-                    if isinstance(message_type, list):
-                        # Use JSON formatting for CEL list rules
-                        rule = {"match": f"event.type in {json.dumps(message_type)}", "path": route}
-                        subscription["routes"]["rules"].append(rule)
-                    elif message_type:
-                        rule = {"match": f"event.type == '{message_type}'", "path": route}
-                        subscription["routes"]["rules"].append(rule)
-                    elif custom_rules:
-                        rule = {"match": custom_rules["match"], "path": route}
-                        subscription["routes"]["rules"].append(rule)
+                    # Register the route with the handler
+                    self.app.add_api_route(route, wrapped_method, methods=["POST"], tags=["PubSub"])
 
-                    logger.info(
-                        f"Subscribed '{method_name}' to topic '{topic_name}' with "
-                        f"rules '{custom_rules or f'event.type == {message_type}'}'"
-                    )
-        
-        logger.debug(f"Subscription Routes: {json.dumps(self.dapr_app._get_subscriptions(), indent=2)}")
+                except Exception as e:
+                    logger.error(f"Failed to register message route: {e}", exc_info=True)
+                    raise
 
-def message_router(
-    pubsub: Optional[str] = None,
-    topic: Optional[str] = None,
-    message_type: Optional[Union[str, List[str]]] = None,
-    route: Optional[str] = None,
-    dead_letter_topic: Optional[str] = None,
-    broadcast: bool = False,
-    rules: Optional[dict] = None,
-) -> Callable[[T], T]:
-    def decorator(func: T) -> T:
-        # Attach metadata for dynamic registration
-        func._is_message_handler = True
-        func._message_router_data = {
-            "pubsub": pubsub,
-            "topic": topic if not broadcast else None,
-            "message_type": message_type,
-            "route": route,
-            "dead_letter_topic": dead_letter_topic,
-            "rules": rules,
-            "is_broadcast": broadcast,
-        }
-
-        # Validation
-        if not message_type and not route and not rules and not broadcast:
-            raise ValueError(
-                "If 'message_type', 'rules', or 'broadcast' are not specified, a 'route' must be defined."
-            )
-        if broadcast and route is None:
-            # Allow broadcast handlers to omit route, as it can be dynamically set
-            pass
-        elif rules and not isinstance(rules, dict):
-            raise ValueError(
-                "'rules' must be a dictionary with valid CEL match logic. See: https://github.com/google/cel-spec"
-            )
-
-        return func
-
-    return decorator
+        logger.debug(f"Final Subscription Routes: {json.dumps(self.dapr_app._get_subscriptions(), indent=2)}")

@@ -1,8 +1,9 @@
 from floki.storage.daprstores.statestore import DaprStateStore
 from floki.agent.utils.text_printer import ColorTextFormatter
 from floki.workflow.service import WorkflowAppService
-from pydantic import Field
-from typing import Any, Optional
+from fastapi import HTTPException
+from pydantic import BaseModel, Field
+from typing import Any, Optional, Union
 import logging
 
 logger = logging.getLogger(__name__)
@@ -49,73 +50,60 @@ class AgenticWorkflowService(WorkflowAppService):
             logger.error(f"Failed to retrieve agents metadata: {e}")
             return {}
     
-    async def publish_message_to_all(self, message_type: Any, message: dict, **kwargs) -> None:
+    async def broadcast_message(self, message: Union[BaseModel, dict], **kwargs) -> None:
         """
-        Publishes a message to all agents on the configured broadcast topic.
+        Sends a message to all agents.
 
         Args:
-            message_type (str): The type of the message (e.g., "AgentActionResultMessage").
-            message (dict): The content of the message to broadcast.
+            message (Union[BaseModel, dict]): The message content as a Pydantic model or dictionary.
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            # Retrieve metadata for all agents
             agents_metadata = await self.get_agents_metadata()
             if not agents_metadata:
                 logger.warning("No agents available for broadcast.")
                 return
-            
-            logger.info(f"{self.name} sending {message_type} to all agents.")
 
-            # Use publish_event_message for broadcasting
+            logger.info(f"{self.name} preparing to broadcast message to all agents.")
+
             await self.publish_event_message(
                 topic_name=self.broadcast_topic_name,
                 pubsub_name=self.message_bus_name,
                 source=self.name,
-                message_type=message_type,
                 message=message,
                 **kwargs,
             )
-
         except Exception as e:
-            logger.error(f"Failed to send broadcast message of type {message_type}: {e}", exc_info=True)
-            raise e
-    
-    async def publish_message_to_agent(self, name: str, message_type: Any, message: dict, **kwargs) -> None:
+            logger.error(f"Failed to broadcast message: {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error broadcasting message: {str(e)}")
+
+    async def send_message_to_agent(self, name: str, message: Union[BaseModel, dict], **kwargs) -> None:
         """
-        Publishes a message to a specific agent.
+        Sends a message to a specific agent.
 
         Args:
             name (str): The name of the target agent.
-            message_type (str): The type of the message (e.g., "TriggerActionMessage").
-            message (dict): The content of the message.
+            message (Union[BaseModel, dict]): The message content as a Pydantic model or dictionary.
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            # Retrieve metadata for all agents
             agents_metadata = await self.get_agents_metadata()
             if name not in agents_metadata:
-                logger.warning(f"Agent {name} not found.")
-                return
+                raise HTTPException(status_code=404, detail=f"Agent {name} not found.")
 
-            # Extract agent-specific metadata
             agent_metadata = agents_metadata[name]
+            logger.info(f"{self.name} preparing to send message to agent '{name}'.")
 
-            logger.info(f"{self.name} sending {message_type} to agent {name}.")
-
-            # Use publish_event_message for targeting a specific agent
             await self.publish_event_message(
                 topic_name=agent_metadata["topic_name"],
                 pubsub_name=agent_metadata["pubsub_name"],
                 source=self.name,
-                message_type=message_type,
                 message=message,
                 **kwargs,
             )
-
         except Exception as e:
-            logger.error(f"Failed to publish message to agent {name}: {e}", exc_info=True)
-            raise e
+            logger.error(f"Failed to send message to agent '{name}': {e}", exc_info=True)
+            raise HTTPException(status_code=500, detail=f"Error sending message to agent '{name}': {str(e)}")
     
     def print_interaction(self, sender_agent_name: str, recipient_agent_name: str, message: str) -> None:
         """

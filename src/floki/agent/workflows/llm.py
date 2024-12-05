@@ -1,13 +1,16 @@
 from floki.agent.workflows.base import AgenticWorkflowService
-from floki.types import DaprWorkflowContext, UserMessage
+from floki.types import DaprWorkflowContext, BaseMessage
 from floki.llm import LLMClientBase, OpenAIChatClient
 from floki.prompt import ChatPromptTemplate
 from typing import Dict, Any, Optional
 from datetime import timedelta
-from pydantic import Field
+from pydantic import BaseModel, Field
 import logging
 
 logger = logging.getLogger(__name__)
+
+class TriggerActionMessage(BaseModel):
+    task: Optional[str] = None
 
 class LLMWorkflowService(AgenticWorkflowService):
     """
@@ -96,20 +99,14 @@ class LLMWorkflowService(AgenticWorkflowService):
         Returns:
             dict: Serialized UserMessage with the content.
         """
-        return UserMessage(content=message).model_dump()
+        return {"role":"user", "content": message}
 
     async def broadcast_input_message(self, **kwargs):
         """
         Broadcasts a message to all agents.
-
-        Args:
-            **kwargs: Additional message metadata to include.
         """
         message = {key: value for key, value in kwargs.items()}
-        await self.publish_message_to_all(
-            message_type="StartMessage",
-            message=message
-        )
+        await self.broadcast_message(message=BaseMessage(**message))
 
     async def select_next_speaker(self, iteration: int, instance_id: str) -> str:
         """
@@ -175,9 +172,8 @@ class LLMWorkflowService(AgenticWorkflowService):
             name (str): Name of the agent to trigger.
             instance_id (str): Workflow instance ID for context.
         """
-        await self.publish_message_to_agent(
+        await self.send_message_to_agent(
             name=name,
-            message_type="TriggerActionMessage",
-            message=None,
+            message=TriggerActionMessage(task=None),
             workflow_instance_id=instance_id,
         )
