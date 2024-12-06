@@ -1,5 +1,5 @@
 from pydantic import BaseModel,field_validator, ValidationError, model_validator, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Dict
 import json
 
 class BaseMessage(BaseModel):
@@ -267,3 +267,52 @@ class MessagePlaceHolder(BaseModel):
     
     def __repr__(self):
         return f"MessagePlaceHolder(variable_name={self.variable_name})"
+
+class EventMessageMetadata(BaseModel):
+    """
+    Represents CloudEvent metadata for describing event context and attributes.
+
+    This class encapsulates core attributes as defined by the CloudEvents specification.
+    Each field corresponds to a CloudEvent context attribute, providing additional metadata
+    about the event.
+
+    Attributes:
+        id (Optional[str]): 
+            Identifies the event. Producers MUST ensure that source + id is unique for each 
+            distinct event. Required and must be a non-empty string.
+        datacontenttype (Optional[str]): 
+            Content type of the event data value, e.g., 'application/json'. 
+            Optional and must adhere to RFC 2046.
+        pubsubname (Optional[str]): 
+            Name of the Pub/Sub system delivering the event. Optional and specific to implementation.
+        source (Optional[str]): 
+            Identifies the context in which an event happened. Required and must be a non-empty URI-reference.
+        specversion (Optional[str]): 
+            The version of the CloudEvents specification used by this event. Required and must be non-empty.
+        time (Optional[str]): 
+            The timestamp of when the occurrence happened in RFC 3339 format. Optional.
+        topic (Optional[str]): 
+            The topic name that categorizes the event within the Pub/Sub system. Optional and specific to implementation.
+        traceid (Optional[str]): 
+            The identifier for tracing systems to correlate events. Optional.
+        traceparent (Optional[str]): 
+            Parent identifier in the tracing system. Optional and adheres to the W3C Trace Context standard.
+        type (Optional[str]): 
+            Describes the type of event related to the originating occurrence. Required and must be a non-empty string.
+        tracestate (Optional[str]): 
+            Vendor-specific tracing information. Optional and adheres to the W3C Trace Context standard.
+        headers (Optional[Dict[str, str]]): 
+            HTTP headers or transport metadata. Optional and contains key-value pairs.
+    """
+    id: Optional[str]
+    datacontenttype: Optional[str]
+    pubsubname: Optional[str]
+    source: Optional[str]
+    specversion: Optional[str]
+    time: Optional[str]
+    topic: Optional[str]
+    traceid: Optional[str]
+    traceparent: Optional[str]
+    type: Optional[str]
+    tracestate: Optional[str]
+    headers: Optional[Dict[str, str]]

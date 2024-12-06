@@ -304,21 +304,15 @@ class AgentServiceBase(DaprEnabledService):
                 subscription["routes"]["rules"].append(rule)
                 logger.info(f"Added match condition: {match_condition}")
                 logger.debug(f"Rule: {rule}")
-
+        
         def create_dependency_injector(model):
             """Factory to create a dependency injector for a specific message model."""
             async def dependency_injector(request: Request):
                 if not model:
                     raise ValueError("No message model provided for dependency injection.")
                 logger.info(f"Using model '{model.__name__}' for this request.")
-                message, metadata, message_type = await parse_cloudevent(request, model)
-                dependencies = {
-                    "message": message,
-                    "source": metadata.get("source"),
-                    "type": message_type,
-                    "headers": metadata.get("headers", {}),
-                }
-                return dependencies
+                message, metadata = await parse_cloudevent(request, model)
+                return {"message": message, "metadata": metadata}
             return dependency_injector
         
         # Define the handler wrapper within a factory function to capture the method correctly
