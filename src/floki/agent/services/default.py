@@ -1,7 +1,7 @@
 from floki.agent.services.base import AgentServiceBase
 from floki.agent.services.messaging import message_router
 from floki.types.agent import AgentActorMessage
-from floki.types.message import BaseMessage
+from floki.types.message import BaseMessage, EventMessageMetadata
 from fastapi import Response, status
 from pydantic import BaseModel
 from typing import Optional
@@ -18,15 +18,15 @@ class AgentService(AgentServiceBase):
     """
     
     @message_router
-    async def process_trigger_action(self, message: TriggerActionMessage, source: str, type: str, headers: dict,) -> Response:
+    async def process_trigger_action(self, message: TriggerActionMessage, metadata: EventMessageMetadata) -> Response:
         """
         Processes TriggerAction messages sent directly to the agent's topic.
         """
         try:
-            logger.info(f"{self.agent.name} received {type} message from {source}.")
+            logger.info(f"{self.agent.name} received {metadata.type} from {metadata.source}.")
 
             # Extract workflow_instance_id if available
-            workflow_instance_id = headers.get("workflow_instance_id")
+            workflow_instance_id = metadata.headers.get("workflow_instance_id")
             logger.debug(f"Workflow instance ID: {workflow_instance_id}")
 
             # Execute the task or fallback to memory
@@ -56,20 +56,20 @@ class AgentService(AgentServiceBase):
             return Response(content=f"Error processing message: {str(e)}", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @message_router(broadcast=True)
-    async def process_broadcast_message(self, message: BaseMessage, source: str, type: str) -> Response:
+    async def process_broadcast_message(self, message: BaseMessage, metadata: EventMessageMetadata) -> Response:
         """
         Processes a message from the broadcast topic.
         """
         try:
-            logger.info(f"{self.agent.name} received broadcast message of type '{type}' from '{source}'.")
+            logger.info(f"{self.agent.name} received broadcast message of type '{metadata.type}' from '{metadata.source}'.")
 
             # Ignore messages sent by this agent
-            if source == self.agent.name:
-                logger.info(f"{self.agent.name} ignored its own broadcast message of type '{type}'.")
+            if metadata.source == self.agent.name:
+                logger.info(f"{self.agent.name} ignored its own broadcast message of type '{metadata.type}'.")
                 return Response(status_code=status.HTTP_204_NO_CONTENT)
 
             # Log and process the valid broadcast message
-            logger.info(f"{self.agent.name} is processing broadcast message of type '{type}' from '{source}'.")
+            logger.info(f"{self.agent.name} is processing broadcast message of type '{metadata.type}' from '{metadata.source}'.")
             logger.debug(f"Message content: {message.content}")
 
             # Add the message to the agent's memory
