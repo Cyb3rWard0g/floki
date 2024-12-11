@@ -4,7 +4,7 @@ from floki.llm.openai.openai_client import OpenAIClient
 from floki.llm.openai.azure_client import AzureOpenAIClient
 from floki.prompt.prompty import Prompty
 from floki.types.message import BaseMessage
-from floki.llm.base import LLMClientBase
+from floki.llm.chat import ChatClientBase
 from floki.tool import AgentTool
 from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type
 from openai.types.chat import ChatCompletionMessage
@@ -15,7 +15,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class OpenAIChatClient(LLMClientBase):
+class OpenAIChatClient(ChatClientBase):
     """
     Concrete class for the OpenAI chat endpoint with support for OpenAI and Azure OpenAI services.
     Always sets provider to 'openai' and api to 'chat'.

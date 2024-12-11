@@ -1,4 +1,5 @@
 from .base import LLMClientBase
+from .chat import ChatClientBase
 from .openai.openai_client import OpenAIClient
 from .openai.azure_client import AzureOpenAIClient
 from .openai.chat import OpenAIChatClient
