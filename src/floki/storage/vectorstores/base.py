@@ -1,6 +1,7 @@
-from abc import ABC, abstractmethod
 from typing import List, Dict, Optional, Iterable, Any, Union
 from pydantic import BaseModel, Field, ConfigDict
+from floki.types.document import Document
+from abc import ABC, abstractmethod
 import logging
 
 logger = logging.getLogger(__name__)
@@ -81,3 +82,17 @@ class VectorStoreBase(BaseModel, ABC):
         Embed documents
         """
         pass
+
+    def from_documents(self, documents: List[Document]) -> List[int]:
+        """
+        Add a list of `Document` objects to the vector store.
+
+        Args:
+            documents (List[Document]): List of `Document` objects to add.
+
+        Returns:
+            List[int]: IDs of the added documents.
+        """
+        texts = [doc.text for doc in documents]
+        metadatas = [doc.metadata or {} for doc in documents]
+        return self.add(documents=texts, metadatas=metadatas)
