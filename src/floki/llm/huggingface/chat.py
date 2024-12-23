@@ -3,7 +3,7 @@ from floki.llm.huggingface.client import HFHubInferenceClient
 from floki.types.llm import HFInferenceClientConfig
 from floki.prompt.prompty import Prompty
 from floki.types.message import BaseMessage
-from floki.llm.base import LLMClientBase
+from floki.llm.chat import ChatClientBase
 from floki.tool import AgentTool
 from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type
 from pydantic import BaseModel, Field
@@ -13,10 +13,10 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class HFHubChatClient(LLMClientBase):
+class HFHubChatClient(ChatClientBase):
     """
     Concrete class for the Hugging Face Hub's chat completion API using the Inference API.
-    This class extends the LLMClientBase and provides the necessary configurations for Hugging Face models.
+    This class extends the ChatClientBase and provides the necessary configurations for Hugging Face models.
     """
     model: str = Field(default=None, description="Model ID to use from Hugging Face Hub.")
     api_key: Optional[str] = Field(default=None, description="API key for Hugging Face services. Optional.")

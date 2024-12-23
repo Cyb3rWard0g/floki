@@ -123,6 +123,22 @@ http://0.0.0.0:8000/floki/
 * Make any requested changes promptly.
 * Once approved, a maintainer will merge your pull request.
 
+## Cleaning Up Local and Remote Branches
+
+Once your Pull Request (PR) has been merged or closed, it’s a good practice to clean up your local and remote branches. This helps keep your development environment and fork organized.
+
+### Delete Local Branch
+
+```bash
+git branch -D feature/your-feature-name
+```
+
+### Delete Remote Branch
+
+```bash
+git push origin --delete feature/your-feature-name
+```
+
 ## Need Help?
 
 If you have any questions, open an issue with the question label.
