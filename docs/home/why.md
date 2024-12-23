@@ -1,4 +1,4 @@
-# Enter Floki
+# Why Floki
 
 Floki is an open-source framework for building and orchestrating LLM-based autonomous agents, designed to simplify the complexity of creating scalable agentic workflows and microservices. Inspired by the growing need for frameworks that integrate seamlessly with distributed systems, Floki enables developers to focus on designing intelligent agents without getting bogged down by infrastructure concerns.
 

@@ -274,7 +274,7 @@ In this example:
 
 ## Customizing the Workflow
 
-The default setup uses the [workflow-roundrobin service](services/workflow-roundrobin/app.py), which processes agent tasks in a `round-robin` order. However, you can easily switch to a different workflow type by updating the `dapr.yaml` file.
+The default setup uses the [workflow-roundrobin service](https://github.com/Cyb3rWard0g/floki/blob/main/cookbook/multi_agent_workflow/services/workflow-roundrobin/app.py), which processes agent tasks in a `round-robin` order. However, you can easily switch to a different workflow type by updating the `dapr.yaml` file.
 
 ### Available Workflow Options
 
