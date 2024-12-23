@@ -1,13 +1,11 @@
-from typing import Any
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, PrivateAttr
 from abc import ABC, abstractmethod
+from typing import Any
 
 class LLMClientBase(BaseModel, ABC):
     """
     Abstract base class for LLM models.
     """
-    model: str = Field(default=None, description="Model name to use, e.g., 'gpt-4o'")
-
     # Private attributes for provider and api
     _provider: str = PrivateAttr()
     _api: str = PrivateAttr()

@@ -1,6 +1,8 @@
-from typing import List, Union, Optional, Dict, Any, Literal
-from pydantic import BaseModel, Field, model_validator, field_validator
+from typing import List, Union, Optional, Dict, Any, Literal, IO, Tuple
+from pydantic import BaseModel, Field, model_validator, field_validator, ConfigDict
 from pydantic_core import PydanticUseDefault
+from pathlib import Path
+from io import BytesIO, BufferedReader
 
 class HFInferenceClientConfig(BaseModel):
     model: Optional[str] = Field(None, description="Model ID on Hugging Face Hub or URL to a deployed Inference Endpoint. Defaults to a recommended model if not provided.")
@@ -181,3 +183,101 @@ class PromptyDefinition(BaseModel):
         if v is None:
             raise PydanticUseDefault()
         return v
+
+class AudioSpeechRequest(BaseModel):
+    model: Optional[Literal["tts-1", "tts-1-hd"]] = Field("tts-1", description="TTS model to use. Defaults to 'tts-1'.")
+    input: str = Field(..., description="Text to generate audio for. If the input exceeds 4096 characters, it will be split into chunks.")
+    voice: Optional[Literal["alloy", "echo", "fable", "onyx", "nova", "shimmer"]] = Field("alloy", description="Voice to use.")
+    response_format: Optional[Literal["mp3", "opus", "aac", "flac", "wav", "pcm"]] = Field("mp3", description="Audio format.")
+    speed: Optional[float] = Field(1.0, ge=0.25, le=4.0, description="Speed of the audio.")
+
+class AudioTranscriptionRequest(BaseModel):
+    model: Optional[Literal["whisper-1"]] = Field("whisper-1", description="Model to use. Defaults to 'whisper-1'.")
+    file: Union[bytes, BytesIO, IO[bytes], BufferedReader, str, Path, Tuple[Optional[str], bytes],Tuple[Optional[str], bytes, Optional[str]]] = Field(..., description="Audio file content.")
+    language: Optional[str] = Field(None, description="Language of the audio in ISO-639-1 format.")
+    prompt: Optional[str] = Field(None, description="Optional prompt for the transcription.")
+    response_format: Optional[Literal["json", "text", "srt", "verbose_json", "vtt"]] = Field("json", description="Response format.")
+    temperature: Optional[float] = Field(0.0, ge=0.0, le=1.0, description="Sampling temperature.")
+    timestamp_granularities: Optional[List[Literal["word", "segment"]]] = Field(None, description="Granularity of timestamps.")
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @field_validator("file", mode="before")
+    @classmethod
+    def validate_file(cls, value: Union[bytes, IO, str, Path, Tuple]) -> Union[IO[bytes], Tuple[str, bytes]]:
+        """
+        Ensure the file field is valid and prepare it for OpenAI API.
+        """
+        if isinstance(value, (str, Path)):
+            # Convert file path to a readable file-like object
+            try:
+                return open(value, "rb")
+            except Exception as e:
+                raise ValueError(f"Invalid file path: {value}. Error: {e}")
+        elif isinstance(value, bytes):
+            return value
+        elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
+            # Allow BufferedReader or other file-like objects as-is
+            return value
+        elif isinstance(value, tuple):
+            # Handle tuples with (filename, bytes or file-like object)
+            if len(value) == 2:
+                filename, file_obj = value
+                if isinstance(file_obj, bytes):
+                    return filename, file_obj
+                elif hasattr(file_obj, "read") and callable(file_obj.read):
+                    return filename, file_obj.read()
+            raise ValueError(
+                "File tuple must be of the form (filename, bytes) or (filename, file-like object)."
+            )
+        else:
+            raise ValueError(f"Unsupported file type: {type(value)}.")
+
+class AudioTranslationRequest(BaseModel):
+    model: Optional[Literal["whisper-1"]] = Field("whisper-1", description="Model to use. Defaults to 'whisper-1'.")
+    file: Union[bytes, BytesIO, IO[bytes], BufferedReader, str, Path, Tuple[Optional[str], bytes],Tuple[Optional[str], bytes, Optional[str]]] = Field(..., description="Audio file content.")
+    prompt: Optional[str] = Field(None, description="Optional prompt for the translation.")
+    response_format: Optional[Literal["json", "text", "srt", "verbose_json", "vtt"]] = Field("json", description="Response format.")
+    temperature: Optional[float] = Field(0.0, ge=0.0, le=1.0, description="Sampling temperature.")
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @field_validator("file", mode="before")
+    @classmethod
+    def validate_file(cls, value: Union[bytes, IO, str, Path, Tuple]) -> Union[IO[bytes], Tuple[str, bytes]]:
+        """
+        Ensure the file field is valid and prepare it for OpenAI API.
+        """
+        if isinstance(value, (str, Path)):
+            # Convert file path to a readable file-like object
+            try:
+                return open(value, "rb")
+            except Exception as e:
+                raise ValueError(f"Invalid file path: {value}. Error: {e}")
+        elif isinstance(value, bytes):
+            return value
+        elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
+            # Allow BufferedReader or other file-like objects as-is
+            return value
+        elif isinstance(value, tuple):
+            # Handle tuples with (filename, bytes or file-like object)
+            if len(value) == 2:
+                filename, file_obj = value
+                if isinstance(file_obj, bytes):
+                    return filename, file_obj
+                elif hasattr(file_obj, "read") and callable(file_obj.read):
+                    return filename, file_obj.read()
+            raise ValueError(
+                "File tuple must be of the form (filename, bytes) or (filename, file-like object)."
+            )
+        else:
+            raise ValueError(f"Unsupported file type: {type(value)}.")
+
+class AudioTranscriptionResponse(BaseModel):
+    text: str
+    language: Optional[str]
+    duration: Optional[float]
+    segments: Optional[List[Dict[str, Union[str, float, List[int]]]]]
+
+class AudioTranslationResponse(BaseModel):
+    text: str
