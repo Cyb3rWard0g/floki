@@ -2,7 +2,7 @@
 
 Agents in `Floki` are autonomous systems powered by Large Language Models (LLMs), designed to execute tasks, reason through problems, and collaborate within workflows. Acting as intelligent building blocks, agents seamlessly combine LLM-driven reasoning with tool integration, memory, and collaboration features to enable scalable, agentic systems.
 
-![](../../img/concepts-agents.png)
+![](../img/concepts-agents.png)
 
 ## Core Features
 
@@ -48,7 +48,7 @@ Tool Calling is an essential pattern in autonomous agent design, allowing AI age
 
 #### How It Works
 
-![](../../img/concepts_agents_toolcall_flow.png)
+![](../img/concepts_agents_toolcall_flow.png)
 
 1. The user submits a query specifying a task and the available tools.
 2. The LLM analyzes the query and selects the right tool for the task.
@@ -67,7 +67,7 @@ The [ReAct (Reason + Act)](https://arxiv.org/pdf/2210.03629.pdf) pattern was int
 
 #### How It Works
 
-![](../../img/concepts_agents_react_flow.png)
+![](../img/concepts_agents_react_flow.png)
 
 * **Thought (Reasoning)**: The agent analyzes the situation and generates a thought or a plan based on the input.
 * **Action**: The agent takes an action based on its reasoning.

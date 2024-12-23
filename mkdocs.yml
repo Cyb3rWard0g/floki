@@ -128,6 +128,8 @@ validation:
 nav:
   - Home:
     - Home: index.md
+    - Why Floki: home/why.md
+    - Core Principles: home/principles.md
     - Installation: home/installation.md
     - Quickstarts:
       - Quickstarts: home/quickstarts/index.md
@@ -136,8 +138,7 @@ nav:
       - Dapr & Floki Workflows: home/quickstarts/dapr_workflows.md
       - LLM-based Task Workflows: home/quickstarts/llm_workflows.md
       - Multi-Agent Workflows: home/quickstarts/agentic_workflows.md
-    - Concepts:
-      - Enter Floki: home/concepts/floki.md
-      - Core Principles: home/concepts/principles.md
-      - Agents: home/concepts/agents.md
-      - Messaging: home/concepts/messaging.md
+  - Core Concepts:
+    - Agents: concepts/agents.md
+    - Messaging: concepts/messaging.md
+    - Text Splitter: concepts/text_splitter.md

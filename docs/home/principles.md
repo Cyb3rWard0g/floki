@@ -23,7 +23,7 @@ Floki ensures a clean separation between agents and the underlying infrastructur
 !!! info
     Decoupling infrastructure keeps agents focused on tasks while enabling seamless scalability and integration across systems.
 
-![](../../img/home_concepts_principles_decoupled.png)
+![](../img/home_concepts_principles_decoupled.png)
 
 ## 3. Modular Component Model
 
@@ -37,7 +37,7 @@ Floki utilizes [Dapr's pluggable component framework](https://docs.dapr.io/conce
 !!! info
     Developers can easily switch between different components (e.g., Redis to DynamoDB) based on their deployment environment, ensuring portability and adaptability.
 
-![](../../img/home_concepts_principles_modular.png)
+![](../img/home_concepts_principles_modular.png)
 
 ## 4. Actor-Based Model for Agents
 
@@ -64,7 +64,7 @@ Floki emphasizes the use of Pub/Sub messaging for event-driven communication bet
 !!! info
     Pub/Sub messaging serves as the backbone for Floki’s event-driven workflows, enabling agents to communicate and collaborate in real time.
 
-![](../../img/home_concepts_principles_message.png)
+![](../img/home_concepts_principles_message.png)
 
 ## 6. Workflow-Oriented Design
 
@@ -78,4 +78,4 @@ By integrating these paradigms, Floki enables workflows that combine the reliabi
 !!! info
     Floki workflows blend structured, predictable logic with the dynamic responsiveness of event-driven systems, empowering both centralized and decentralized workflows.
 
-![](../../img/home_concepts_principles_workflows.png)
+![](../img/home_concepts_principles_workflows.png)
