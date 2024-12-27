@@ -10,6 +10,7 @@ readme = "README.md"
 authors = [{ name = "Roberto Rodriguez" }]
 license = { text = "MIT License" }
 requires-python = ">=3.9, <3.13"
+keywords = ["LLM", "Cybersecurity", "AI", "Agents"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
