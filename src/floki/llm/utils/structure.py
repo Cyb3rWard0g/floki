@@ -131,7 +131,7 @@ class StructureHandler:
         try:
             if llm_provider == "openai":
                 extracted_response = response.choices[0].message.tool_calls[0].function.arguments
-                logger.info(f"Extracted structured response: {extracted_response}")
+                logger.debug(f"Extracted structured response: {extracted_response}")
                 return extracted_response
             else:
                 raise StructureError(f"Unsupported LLM provider: {llm_provider}")
