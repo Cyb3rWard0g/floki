@@ -1,4 +1,4 @@
-# Multi-Agent Event-Driven Workflow
+# Multi-Agent LOTR: Event-Driven Workflow
 
 This guide shows you how to set up and run an event-driven agentic workflow using Floki. By leveraging [Dapr Pub/Sub](https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-overview/) and FastAPI, `Floki` enables agents to collaborate dynamically in decentralized systems.
 
