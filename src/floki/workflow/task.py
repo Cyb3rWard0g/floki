@@ -1,10 +1,10 @@
+from pydantic import BaseModel, Field, ConfigDict, TypeAdapter, ValidationError
 from typing import Any, Callable, Optional, Union, get_origin, get_args, List
-from dapr.ext.workflow import WorkflowActivityContext
 from floki.types import ChatCompletion, BaseMessage, UserMessage
-from floki.llm.base import LLMClientBase
 from floki.llm.utils import StructureHandler
+from floki.llm.base import LLMClientBase
 from floki.llm.openai import OpenAIChatClient
-from pydantic import BaseModel, Field, ConfigDict
+from dapr.ext.workflow import WorkflowActivityContext
 from functools import update_wrapper
 from types import SimpleNamespace
 from dataclasses import is_dataclass
@@ -44,7 +44,7 @@ class Task(BaseModel):
     
     def __call__(self, ctx: WorkflowActivityContext, input: Any = None) -> Any:
         """
-        Executes the task based on the configured function, agent, or LLM.
+        Executes the task and validates its output.
 
         Args:
             ctx (WorkflowActivityContext): Execution context for the task.
@@ -52,29 +52,20 @@ class Task(BaseModel):
 
         Returns:
             Any: The result of the task execution.
-
-        Raises:
-            ValueError: If the task is not properly configured with either a function, an agent, or an LLM.
         """
-
         # Normalize the input
         input = self._normalize_input(input) if input is not None else {}
 
-        # Determine the description only for agent or LLM tasks
+        # Execute the task
         if self.agent or self.llm:
             description = self.description or (self.func.__doc__ if self.func else None)
-        else:
-            description = None
-
-        if description:
-            result = self._run_task(self.format_description(self.description, input))
+            result = self._run_task(self.format_description(description, input))
+            return self._validate_output_llm(result)
         elif self.func:
             result = self._execute_function(input or {})
+            return self._validate_output(result)
         else:
             raise ValueError("Task must have a function or description for execution.")
-        
-        # Validate and return the output
-        return self._validate_output(result)
 
     def _normalize_input(self, input: Any) -> dict:
         """
@@ -121,7 +112,6 @@ class Task(BaseModel):
         if self.signature:
             bound_args = self.signature.bind(**input)
             bound_args.apply_defaults()
-            logger.info("FORMAT DESCRIPTION")
             return description.format(**bound_args.arguments)
         return description.format(**input)
 
@@ -141,7 +131,8 @@ class Task(BaseModel):
         Raises:
             ValueError: If neither an agent nor an LLM is provided.
         """
-        logger.info(f"Running task with description: {formatted_description}")
+        logger.info(f"Running task..")
+        logger.debug(f"Running task with description: {formatted_description}")
         if self.agent:
             return self._run_agent(formatted_description)
         elif self.llm:
@@ -242,13 +233,9 @@ class Task(BaseModel):
         logger.info(f"Final result: {result}")
         return result
 
-    def _validate_output(self, result: Any) -> Any:
+    def _validate_output_llm(self, result: Any) -> Any:
         """
-        Validate the output of the task against the expected type.
-
-        This method checks whether the result matches the expected return type
-        defined in the function signature. It supports basic types, Pydantic models,
-        and complex types like Unions.
+        Specialized validation for LLM task outputs.
 
         Args:
             result (Any): The result to validate.
@@ -257,24 +244,66 @@ class Task(BaseModel):
             Any: The validated result.
 
         Raises:
-            ValidationError: If the result does not match the expected Pydantic model.
-            TypeError: If the return type annotation is not as expected.
+            TypeError: If the result does not match the expected type or validation fails.
         """
         if self.signature:
             expected_type = self.signature.return_annotation
 
             if expected_type and expected_type is not inspect.Signature.empty:
                 origin = get_origin(expected_type)
+
+                # Handle Union types
                 if origin is Union:
                     valid_types = get_args(expected_type)
                     if not isinstance(result, valid_types):
                         raise TypeError(f"Expected return type to be one of {valid_types}, but got {type(result)}")
                     return result
 
-                if issubclass(expected_type, BaseModel):
-                    if not isinstance(StructureHandler.validate_response(result, expected_type), expected_type):
-                        raise TypeError(f"Expected return type to be {expected_type}, but got {type(result)}")
-                    return result
+                # Handle Pydantic models
+                if isinstance(expected_type, type) and issubclass(expected_type, BaseModel):
+                    try:
+                        validated_result = StructureHandler.validate_response(result, expected_type)
+                        return validated_result.model_dump()
+                    except ValidationError as e:
+                        raise TypeError(f"Validation failed for type {expected_type}: {e}")
+
+                # Handle lists of Pydantic models
+                if origin:
+                    args = get_args(expected_type)
+                    if origin is list and len(args) == 1 and issubclass(args[0], BaseModel):
+                        if not all(isinstance(item, args[0]) for item in result):
+                            raise TypeError(f"Expected all items in the list to be of type {args[0]}, but got {type(result)}")
+                        return [StructureHandler.validate_response(item, args[0]) for item in result]
+
+        # If no specific validation applies, return the result as-is
+        return result
+    
+    def _validate_output(self, result: Any) -> Any:
+        """
+        Validate the output of the task against the expected type.
+
+        Args:
+            result (Any): The result to validate.
+
+        Returns:
+            Any: The validated result.
+
+        Raises:
+            ValidationError: If the result does not match the expected type.
+        """
+        if self.signature:
+            expected_type = self.signature.return_annotation
+
+            if expected_type and expected_type is not inspect.Signature.empty:
+                # Use TypeAdapter for validation
+                try:
+                    adapter = TypeAdapter(expected_type)
+                    validated_result = adapter.validate_python(result)
+                    return validated_result
+                except ValidationError as e:
+                    raise TypeError(f"Validation failed for type {expected_type}: {e}")
+
+        # If no specific validation applies, return the result as-is
         return result
 
 class TaskWrapper:
