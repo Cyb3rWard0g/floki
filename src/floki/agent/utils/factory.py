@@ -51,8 +51,8 @@ class Agent(AgentBase):
         role: str,
         name: Optional[str] = None,
         pattern: str = "toolcalling",
-        llm: Optional[LLMClientBase] = OpenAIChatClient(),
-        memory: Optional[MemoryBase] = ConversationListMemory(),
+        llm: Optional[LLMClientBase] = None,
+        memory: Optional[MemoryBase] = None,
         tools: Optional[List[AgentTool]] = [],
         **kwargs
     ) -> Union[ToolCallAgent, ReActAgent, OpenAPIReActAgent]:
@@ -71,6 +71,10 @@ class Agent(AgentBase):
             Union[ToolCallAgent, ReActAgent, OpenAPIReActAgent]: The initialized agent instance.
         """
         agent_class = AgentFactory.create_agent_class(pattern)
+
+        # Lazy initialization
+        llm = llm or OpenAIChatClient()
+        memory = memory or ConversationListMemory()
 
         if pattern == "openapireact":
             kwargs.update({
