@@ -6,7 +6,7 @@ class Node(BaseModel):
     label: str = Field(description="The primary label or type of the node.")
     properties: Dict[str, Any] = Field(description="A dictionary of properties associated with the node.")
     additional_labels: Optional[List[str]] = Field(default=[], description="Additional labels or categories associated with the node.")
-    embedding: Optional[List[float]] = Field(default=None, example=[0.1, 0.2, 0.3], description="Optional embedding vector for the node, useful for vector-based similarity searches.")
+    embedding: Optional[List[float]] = Field(default=None, description="Optional embedding vector for the node, useful for vector-based similarity searches.")
 
     model_config = ConfigDict(
         json_schema_extra = {

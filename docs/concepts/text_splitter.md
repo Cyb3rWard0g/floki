@@ -89,6 +89,17 @@ if not local_pdf_path.exists():
 
 ### Step 2: Read the Document
 
+For this example, we use Floki's `PyPDFReader`.
+
+!!! info
+    The PyPDF Reader relies on the [pypdf python library](https://pypi.org/project/pypdf/), which is not included in the Floki core module. This design choice helps maintain modularity and avoids adding unnecessary dependencies for users who may not require this functionality. To use the PyPDF Reader, ensure that you install the library separately.
+
+```python
+pip install pypdf
+```
+
+Then, initialize the reader to load the PDF file.
+
 ```python
 from floki.document.reader.pdf.pypdf import PyPDFReader
 

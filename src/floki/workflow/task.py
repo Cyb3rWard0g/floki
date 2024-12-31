@@ -8,6 +8,7 @@ from dapr.ext.workflow import WorkflowActivityContext
 from functools import update_wrapper
 from types import SimpleNamespace
 from dataclasses import is_dataclass
+import asyncio
 import inspect
 import logging
 
@@ -15,7 +16,10 @@ logger = logging.getLogger(__name__)
 
 class Task(BaseModel):
     """
-    A class encapsulating task logic for execution by an LLM, agent, or Python function.
+    Encapsulates task logic for execution by an LLM, agent, or Python function.
+
+    Supports both synchronous and asynchronous tasks, with optional output validation
+    using Pydantic models or specified return types.
     """
 
     func: Optional[Callable] = Field(None, description="The original function to be executed, if provided.")
@@ -25,47 +29,57 @@ class Task(BaseModel):
     llm: Optional[LLMClientBase] = Field(default_factory=OpenAIChatClient, description="The LLM client for executing the task, if applicable.")
     llm_method: Union[str, Callable] = Field("generate", description="The method or callable for invoking the LLM client.")
 
-    # Initialized in model_post_init
+    # Initialized during setup
     signature: Optional[inspect.Signature] = Field(None, init=False, description="The signature of the provided function.")
     
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def model_post_init(self, __context: Any) -> None:
+        """
+        Post-initialization to set up function signatures and default LLM clients.
+        """
         if self.description and not self.llm:
             self.llm = OpenAIChatClient()
         
         if self.func:
             update_wrapper(self, self.func)
-        
+
         self.signature = inspect.signature(self.func) if self.func else None
 
         # Proceed with base model setup
         super().model_post_init(__context)
     
-    def __call__(self, ctx: WorkflowActivityContext, input: Any = None) -> Any:
+    async def __call__(self, ctx: WorkflowActivityContext, input: Any = None) -> Any:
         """
         Executes the task and validates its output.
-
-        Args:
-            ctx (WorkflowActivityContext): Execution context for the task.
-            input (Any): Task input, normalized to a dictionary.
-
-        Returns:
-            Any: The result of the task execution.
+        Ensures all coroutines are awaited before returning.
         """
-        # Normalize the input
         input = self._normalize_input(input) if input is not None else {}
 
-        # Execute the task
-        if self.agent or self.llm:
-            description = self.description or (self.func.__doc__ if self.func else None)
-            result = self._run_task(self.format_description(description, input))
-            return self._validate_output_llm(result)
-        elif self.func:
-            result = self._execute_function(input or {})
-            return self._validate_output(result)
-        else:
-            raise ValueError("Task must have a function or description for execution.")
+        try:
+            if self.agent or self.llm:
+                # Task requires LLM/Agent
+                description = self.description or (self.func.__doc__ if self.func else None)
+                logger.info(f"Executing task with LLM/agent")
+                result = await self._run_task(self.format_description(description, input))
+                result = await self._validate_output_llm(result)
+            elif self.func:
+                # Task is a Python function
+                logger.info(f"Executing Regular Task")
+                if asyncio.iscoroutinefunction(self.func):
+                    # Await async function
+                    result = await self.func(**input)
+                else:
+                    # Call sync function
+                    result = self._execute_function(input)
+                result = await self._validate_output(result)
+            else:
+                raise ValueError("Task must have an LLM, agent, or regular function for execution.")
+            
+            return result
+        except Exception as e:
+            logger.error(f"Task execution error: {e}")
+            raise
 
     def _normalize_input(self, input: Any) -> dict:
         """
@@ -114,13 +128,10 @@ class Task(BaseModel):
             bound_args.apply_defaults()
             return description.format(**bound_args.arguments)
         return description.format(**input)
-
-    def _run_task(self, formatted_description: str) -> Any:
+    
+    async def _run_task(self, formatted_description: str) -> Any:
         """
         Determine whether to run the task using an agent or an LLM.
-
-        This method delegates the execution to either the _run_agent or _run_llm method
-        based on whether an agent or LLM is provided.
 
         Args:
             formatted_description (str): The formatted description to pass to the agent or LLM.
@@ -131,28 +142,16 @@ class Task(BaseModel):
         Raises:
             ValueError: If neither an agent nor an LLM is provided.
         """
-        logger.info(f"Running task..")
-        logger.debug(f"Running task with description: {formatted_description}")
+        logger.debug(f"Task Description: {formatted_description}")
+
         if self.agent:
-            return self._run_agent(formatted_description)
+            return await self._run_agent(formatted_description)
         elif self.llm:
-            return self._run_llm(formatted_description)
+            return await self._run_llm(formatted_description)
         else:
             raise ValueError("No agent or LLM provided.")
 
-    def _execute_function(self, input: dict) -> Any:
-        """
-        Execute the wrapped function with the provided input.
-
-        Args:
-            input (dict): The input data to pass to the function.
-
-        Returns:
-            Any: The result of the function execution.
-        """
-        return self.func(**input)
-
-    def _run_agent(self, description: str) -> Any:
+    async def _run_agent(self, description: str) -> Any:
         """
         Execute the task using the provided agent.
 
@@ -161,28 +160,26 @@ class Task(BaseModel):
 
         Returns:
             Any: The result of the agent execution.
-
-        Raises:
-            AttributeError: If the agent method does not exist.
-            ValueError: If the agent method is not callable.
         """
+        logger.info("Running task with agent...")
         if isinstance(self.agent_method, str):
-            if hasattr(self.agent, self.agent_method):
-                agent_callable = getattr(self.agent, self.agent_method)
-                return agent_callable({"task": description})
-            else:
-                raise AttributeError(f"The agent does not have a method named '{self.agent_method}'.")
+            agent_callable = getattr(self.agent, self.agent_method, None)
+            if not agent_callable:
+                raise AttributeError(f"Agent does not have a method named '{self.agent_method}'.")
         elif callable(self.agent_method):
-            return self.agent_method(self.agent, {"task": description})
+            agent_callable = self.agent_method
         else:
             raise ValueError("Invalid agent method provided.")
-    
-    def _run_llm(self, description: Union[str, List[BaseMessage]]) -> Any:
+
+        # Execute the agent method
+        result = await agent_callable({"task": description}) if asyncio.iscoroutinefunction(agent_callable) else agent_callable({"task": description})
+
+        logger.debug(f"Agent result type: {type(result)}, value: {result}")
+        return self._convert_result(result)
+
+    async def _run_llm(self, description: Union[str, List[BaseMessage]]) -> Any:
         """
         Execute the task using the provided LLM.
-
-        If the description is a string, it is converted into a UserMessage. 
-        If the description is a list of BaseMessage, it is passed as-is.
 
         Args:
             description (Union[str, List[BaseMessage]]): The description to pass to the LLM.
@@ -194,46 +191,75 @@ class Task(BaseModel):
             AttributeError: If the LLM method does not exist.
             ValueError: If the LLM method is not callable.
         """
+        logger.info("Running task with LLM...")
+
+        # Ensure description is a list of UserMessages
         if isinstance(description, str):
             description = [UserMessage(description)]
 
-        # Prepare the parameters for the LLM call
         llm_params = {'messages': description}
 
-        # Add response_model to parameters if it exists
+        # Add response model if the signature specifies it
         if self.signature and self.signature.return_annotation is not inspect.Signature.empty:
             return_annotation = self.signature.return_annotation
             if isinstance(return_annotation, type) and issubclass(return_annotation, BaseModel):
                 llm_params['response_model'] = return_annotation
 
-        # Determine if llm_method is a string or callable and execute accordingly
+        # Resolve and call the LLM method
         if isinstance(self.llm_method, str):
-            if hasattr(self.llm, self.llm_method):
-                llm_callable = getattr(self.llm, self.llm_method)
-                result = llm_callable(**llm_params)
-            else:
+            llm_callable = getattr(self.llm, self.llm_method, None)
+            if not llm_callable:
                 raise AttributeError(f"The LLM does not have a method named '{self.llm_method}'.")
         elif callable(self.llm_method):
-            result = self.llm_method(self.llm, **llm_params)
+            llm_callable = self.llm_method
         else:
             raise ValueError("Invalid LLM method provided.")
 
-        # Check if the result is a ChatCompletion and extract the message content
-        if isinstance(result, ChatCompletion):
-            message_content = result.get_content()
-            logger.info(f"Extracted message content: {message_content}")
-            return message_content
+        # Execute the LLM method (async or sync)
+        result = await llm_callable(**llm_params) if asyncio.iscoroutinefunction(llm_callable) else llm_callable(**llm_params)
 
-        # If the result is a Pydantic model, convert it to a dictionary
+        logger.debug(f"LLM result type: {type(result)}, value: {result}")
+        return self._convert_result(result)
+
+    def _convert_result(self, result: Any) -> Any:
+        """
+        Convert the task result to a dictionary if necessary.
+
+        Args:
+            result (Any): The raw task result.
+
+        Returns:
+            Any: The converted result.
+        """
+        if isinstance(result, ChatCompletion):
+            logger.info("Extracted message content from ChatCompletion.")
+            return result.get_content()
+
         if isinstance(result, BaseModel):
             logger.info("Converting Pydantic model to dictionary.")
             return result.model_dump()
 
-        # If none of the above conditions are met
-        logger.info(f"Final result: {result}")
-        return result
+        if isinstance(result, list) and all(isinstance(item, BaseModel) for item in result):
+            logger.info("Converting list of Pydantic models to list of dictionaries.")
+            return [item.model_dump() for item in result]
 
-    def _validate_output_llm(self, result: Any) -> Any:
+        # If no specific conversion is necessary, return as-is
+        logger.info("Returning final task result.")
+        return result
+    
+    def _execute_function(self, input: dict) -> Any:
+        """
+        Execute the wrapped function with the provided input.
+
+        Args:
+            input (dict): The input data to pass to the function.
+
+        Returns:
+            Any: The result of the function execution.
+        """
+        return self.func(**input)
+    
+    async def _validate_output_llm(self, result: Any) -> Any:
         """
         Specialized validation for LLM task outputs.
 
@@ -246,6 +272,10 @@ class Task(BaseModel):
         Raises:
             TypeError: If the result does not match the expected type or validation fails.
         """
+        if asyncio.iscoroutine(result):
+            logger.error("Unexpected coroutine detected during validation.")
+            result = await result 
+
         if self.signature:
             expected_type = self.signature.return_annotation
 
@@ -278,7 +308,7 @@ class Task(BaseModel):
         # If no specific validation applies, return the result as-is
         return result
     
-    def _validate_output(self, result: Any) -> Any:
+    async def _validate_output(self, result: Any) -> Any:
         """
         Validate the output of the task against the expected type.
 

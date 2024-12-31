@@ -123,7 +123,7 @@ class PromptyModelConfig(BaseModel):
     api: Literal["chat", "completion"] = Field("chat", description="The API to use, either 'chat' or 'completion'")
     configuration: Union[OpenAIModelConfig, AzureOpenAIModelConfig, HFHubModelConfig] = Field(..., description="Model configuration settings")
     parameters: Union[OpenAITextCompletionParams, OpenAIChatCompletionParams] = Field(..., description="Parameters for the model request")
-    response: str = Field("first", description="Determines if full response or just the first one is returned", enum=["first", "full"])
+    response: Literal["first", "full"] = Field("first", description="Determines if full response or just the first one is returned")
 
     @field_validator("*", mode="before")
     @classmethod

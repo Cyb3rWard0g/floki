@@ -1,8 +1,8 @@
 from floki.storage.vectorstores import VectorStoreBase
 from floki.storage.vectorstores.chroma.embedding import ChromaEmbeddingManager
 from typing import List, Dict, Optional, Iterable, Union, Any
-from chromadb.config import Settings
-from pydantic import Field
+from pydantic import Field, ConfigDict
+from chromadb.config import Settings as ChromaSettings
 from chromadb import Client
 import uuid
 import logging
@@ -11,53 +11,57 @@ logger = logging.getLogger(__name__)
 
 class ChromaVectorStore(VectorStoreBase):
     """
-    Chroma-based vector store implementation that integrates with various embedding services.
+    Chroma-based vector store implementation with flexible persistence and server mode.
     """
 
     name: str = Field(..., description="The name of the Chroma collection.")
-    embedding_service: str = Field(..., description="The embedding service to use ('openai', 'huggingface', 'sentence-transformers').")
+    embedding_service: str = Field(..., description="The embedding service to use ('openai', 'huggingface', etc.).")
     api_key: Optional[str] = Field(None, description="API key for the embedding service.")
     model: Optional[str] = Field(None, description="Model name for generating embeddings.")
-    persistent: bool = Field(False, description="Whether to use persistent storage.")
-    path: Optional[str] = Field(None, description="Path for persistent storage.")
-    client_server_mode: bool = Field(False, description="Use client-server mode if True.")
-    host: str = Field("localhost", description="Host for the Chroma server in client-server mode.")
-    port: int = Field(8000, description="Port for the Chroma server.")
-    allow_reset: bool = Field(True, description="Allows resetting the database when True.")
-
-    # Attributes initialized in model_post_init with descriptions
-    client: Optional[Client] = Field(default=None, init=False, description="Chroma client instance.")
-    settings: Optional[Settings] = Field(default=None, init=False, description="Settings for Chroma configuration.")
-    embedding_manager: Optional[ChromaEmbeddingManager] = Field(default=None, init=False, description="Manager for handling embedding functionality.")
-    collection: Optional[Any] = Field(default=None, init=False, description="Chroma collection for document storage and retrieval.")
     
+    persistent: bool = Field(False, description="Whether to enable persistent storage.")
+    path: Optional[str] = Field(None, description="Path for persistent storage.")
+    
+    client_server_mode: bool = Field(False, description="Whether to enable client-server mode.")
+    host: str = Field("localhost", description="Host for the Chroma server in client-server mode.")
+    port: int = Field(8000, description="Port for the Chroma server in client-server mode.")
+    
+    settings: Optional[ChromaSettings] = Field(None, description="Optional Chroma settings object.")
+
+    client: Optional[Client] = Field(default=None, init=False, description="Chroma client instance.")
+    collection: Optional[Any] = Field(default=None, init=False, description="Chroma collection for document storage.")
+    embedding_manager: Optional[ChromaEmbeddingManager] = Field(default=None, init=False, description="Embedding manager.")
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     def model_post_init(self, __context: Any) -> None:
         """
-        Post-initialization setup for ChromaVectorStore, configuring the embedding manager, Chroma client, and collection.
+        Post-initialization setup for ChromaVectorStore, configuring the embedding manager, client, and collection.
         """
-        # Initialize the embedding manager and embedding function
+        # Initialize embedding manager
         self.embedding_manager = ChromaEmbeddingManager(
-            service=self.embedding_service, 
-            api_key=self.api_key, 
-            model=self.model
+            service=self.embedding_service, api_key=self.api_key, model=self.model
         )
         self.embedding_function = self.embedding_manager.embedding_function
 
-        # Configure Chroma settings
-        self.settings = Settings()
-        self.settings.allow_reset = self.allow_reset
-
-        # Set client-server or persistent storage settings
-        if self.client_server_mode:
-            self.settings.chroma_server_host = self.host
-            self.settings.chroma_server_http_port = self.port
-            self.settings.chroma_api_impl = "chromadb.api.fastapi.FastAPI"
-        elif self.persistent:
-            self.settings.persist_directory = self.path or "db"
-            self.settings.is_persistent = True
+        # Use provided settings or construct settings based on flags
+        if not self.settings:
+            if self.client_server_mode:
+                self.settings = ChromaSettings(
+                    chroma_server_host=self.host,
+                    chroma_server_http_port=self.port,
+                    chroma_api_impl="chromadb.api.fastapi.FastAPI",
+                )
+            elif self.persistent:
+                self.settings = ChromaSettings(
+                    persist_directory=self.path or "db",
+                    is_persistent=True,
+                )
+            else:
+                self.settings = ChromaSettings()
 
         # Initialize Chroma client and collection
-        self.client = Client(self.settings)
+        self.client = Client(settings=self.settings)
         self.collection = self.client.get_or_create_collection(
             name=self.name,
             embedding_function=self.embedding_function,

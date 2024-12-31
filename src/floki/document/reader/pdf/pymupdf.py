@@ -1,19 +1,21 @@
 from floki.document.reader.base import ReaderBase
 from floki.types.document import Document
-from typing import List
+from typing import List, Dict, Optional
 from pathlib import Path
+
 
 class PyMuPDFReader(ReaderBase):
     """
     Reader for PDF documents using PyMuPDF.
     """
 
-    def load(self, file_path: Path) -> List[Document]:
+    def load(self, file_path: Path, additional_metadata: Optional[Dict] = None) -> List[Document]:
         """
         Load content from a PDF file using PyMuPDF.
 
         Args:
             file_path (Path): Path to the PDF file.
+            additional_metadata (Optional[Dict]): Additional metadata to include.
 
         Returns:
             List[Document]: A list of Document objects.
@@ -37,6 +39,9 @@ class PyMuPDFReader(ReaderBase):
                 "page_number": page_num + 1,
                 "total_pages": total_pages,
             }
+            if additional_metadata:
+                metadata.update(additional_metadata)
+
             documents.append(Document(text=text.strip(), metadata=metadata))
 
         doc.close()

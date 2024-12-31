@@ -142,3 +142,4 @@ nav:
     - Agents: concepts/agents.md
     - Messaging: concepts/messaging.md
     - Text Splitter: concepts/text_splitter.md
+    - Arxiv Fetcher: concepts/arxiv_fetcher.md

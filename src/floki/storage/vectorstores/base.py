@@ -11,8 +11,6 @@ class VectorStoreBase(BaseModel, ABC):
 
     client: Any = Field(default=None, init=False, description="The client to interact with the vector store.")
     embedding_function: Any = Field(default=None, init=False, description="Embedding function to use to embed documents.")
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
     
     @abstractmethod
     def add(self, documents: Iterable[str], embeddings: Optional[List[List[float]]] = None, metadatas: Optional[List[dict]] = None, **kwargs: Any) -> List[int]:
