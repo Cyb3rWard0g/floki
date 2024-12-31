@@ -8,6 +8,7 @@ from dapr.ext.workflow import WorkflowActivityContext
 from functools import update_wrapper
 from types import SimpleNamespace
 from dataclasses import is_dataclass
+import asyncio
 import inspect
 import logging
 
@@ -53,19 +54,26 @@ class Task(BaseModel):
         Returns:
             Any: The result of the task execution.
         """
-        # Normalize the input
         input = self._normalize_input(input) if input is not None else {}
 
-        # Execute the task
         if self.agent or self.llm:
             description = self.description or (self.func.__doc__ if self.func else None)
             result = self._run_task(self.format_description(description, input))
             return self._validate_output_llm(result)
-        elif self.func:
-            result = self._execute_function(input or {})
-            return self._validate_output(result)
-        else:
-            raise ValueError("Task must have a function or description for execution.")
+
+        if self.func:
+            if asyncio.iscoroutinefunction(self.func):
+                async def execute_async():
+                    result = await self.func(**input)
+                    return self._validate_output(result)
+                
+                # Let the Dapr environment handle the async context
+                return execute_async()
+            else:
+                result = self._execute_function(input or {})
+                return self._validate_output(result)
+
+        raise ValueError("Task must have a function or description for execution.")
 
     def _normalize_input(self, input: Any) -> dict:
         """
