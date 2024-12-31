@@ -106,26 +106,80 @@ class WorkflowApp(BaseModel):
             func = None
         
         def decorator(f: Callable):
+            """
+            Decorator to wrap a function as a Dapr workflow activity task.
+            
+            Args:
+                f (Callable): The function to be wrapped and registered as a Dapr task.
+
+            Returns:
+                Callable: A decorated function wrapped with the task execution logic.
+            """
             # Wrap the original function with Task logic
-            task_instance = Task(func=f, description=description, agent=agent, agent_method=agent_method, llm=llm, llm_method=llm_method)
+            task_instance = Task(
+                func=f,
+                description=description,
+                agent=agent,
+                agent_method=agent_method,
+                llm=llm,
+                llm_method=llm_method,
+            )
 
             @functools.wraps(f)
             def task_wrapper(ctx: WorkflowActivityContext, input: Any = None):
-                # Handle async functions using await
-                if asyncio.iscoroutinefunction(f):
-                    async def async_task_execution():
-                        return await task_instance(ctx, input)
-                    return asyncio.run(async_task_execution())
-                # Handle sync functions
-                return task_instance(ctx, input)
+                """
+                Wrapper function for executing tasks in a Dapr workflow.
+                Handles both sync and async tasks.
+                """
+                async def async_execution():
+                    """
+                    Handles the actual asynchronous execution of the task.
+                    """
+                    try:
+                        result = await task_instance(ctx, input)
+                        return result
+                    except Exception as e:
+                        logger.error(f"Async task execution failed: {e}")
+                        raise
+
+                def run_in_event_loop(coroutine):
+                    """
+                    Helper function to run a coroutine in the current or a new event loop.
+                    """
+                    try:
+                        loop = asyncio.get_event_loop()
+                    except RuntimeError:
+                        loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(loop)
+
+                    return loop.run_until_complete(coroutine)
+
+                try:
+                    if asyncio.iscoroutinefunction(f) or asyncio.iscoroutinefunction(task_instance.__call__):
+                        # Handle async tasks
+                        return run_in_event_loop(async_execution())
+                    else:
+                        # Handle sync tasks
+                        result = task_instance(ctx, input)
+                        if asyncio.iscoroutine(result):
+                            logger.warning("Sync task returned a coroutine. Running it in the event loop.")
+                            return run_in_event_loop(result)
+
+                        logger.info(f"Sync task completed.")
+                        return result
+
+                except Exception as e:
+                    logger.error(f"Task execution failed: {e}")
+                    raise
 
             # Register the task with Dapr Workflow
             activity_decorator = self.wf_runtime.activity(name=name or f.__name__)
             registered_activity = activity_decorator(task_wrapper)
 
-            # Optionally, store the task in the registry
+            # Optionally, store the task in the registry for easier access
             task_name = name or f.__name__
             self.tasks[task_name] = registered_activity
+
             return registered_activity
 
         return decorator(func) if func else decorator
