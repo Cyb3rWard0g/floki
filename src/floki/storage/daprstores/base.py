@@ -1,4 +1,4 @@
-from dapr.conf import settings
+from dapr.conf import settings as dapr_settings
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Any
 import os
@@ -24,11 +24,11 @@ class DaprStoreBase(BaseModel):
         env_port = os.getenv('DAPR_GRPC_PORT')
 
         # Set Dapr settings only if explicit values are provided or fall back to environment values
-        settings.DAPR_RUNTIME_HOST = self.host or env_host or settings.DAPR_RUNTIME_HOST
-        settings.DAPR_GRPC_PORT = self.port or env_port or settings.DAPR_GRPC_PORT
+        self.host = self.host or env_host or dapr_settings.DAPR_RUNTIME_HOST
+        self.port = self.port or env_port or dapr_settings.DAPR_GRPC_PORT
 
         # Determine the address, prioritizing provided address or constructing from host and port
-        self.address = self.address or f'{settings.DAPR_RUNTIME_HOST}:{settings.DAPR_GRPC_PORT}'
+        self.address = self.address or f'{self.host}:{self.port}'
 
         # Complete post-initialization
         super().model_post_init(__context)
