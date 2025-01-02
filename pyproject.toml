@@ -4,20 +4,26 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "floki-ai"
-version = "0.7.0"
+version = "0.7.1"
 description = "Agentic Workflows Made Simple"
 readme = "README.md"
 authors = [{ name = "Roberto Rodriguez" }]
 license = { text = "MIT License" }
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.9"
 keywords = ["LLM", "Cybersecurity", "AI", "Agents"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: POSIX :: Linux",
-    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 
 dependencies = [
@@ -33,6 +39,8 @@ dependencies = [
     "dapr==1.14.0",
     "dapr-ext-fastapi==1.14.0",
     "dapr-ext-workflow==0.5.0",
+    "colorama==0.4.6",
+    "cloudevents==1.11.0",
 ]
 
 [project.urls]
@@ -40,7 +48,7 @@ homepage = "https://github.com/Cyb3rWard0g/floki"
 
 [tool.poetry]
 name = "floki"
-version = "0.7.0"
+version = "0.7.1"
 description = "Agentic Workflows Made Simple"
 authors = ["Roberto Rodriguez"]
 license = "MIT"
@@ -73,6 +81,8 @@ starlette = "^0.40.0"
 dapr-ext-workflow = "0.5.0"
 dapr-ext-fastapi = "1.14.0"
 dapr = "1.14.0"
+colorama = "0.4.6"
+cloudevents = "1.11.0"
 
 [tool.poetry.group.dev.dependencies]
 ipykernel = "^6.29.4"

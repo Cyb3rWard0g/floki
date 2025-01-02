@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="floki-ai",
-    version="0.7.0",
+    version="0.7.1",
     author="Roberto Rodriguez",
     description="Agentic Workflows Made Simple",
     long_description=long_description,
@@ -32,7 +32,9 @@ setup(
         "azure-identity==1.19.0",
         "dapr==1.14.0",
         "dapr-ext-fastapi==1.14.0",
-        "dapr-ext-workflow==0.5.0"
+        "dapr-ext-workflow==0.5.0",
+        "colorama==0.4.6",
+        "cloudevents==1.11.0"
     ],
     license='MIT',
     classifiers=[

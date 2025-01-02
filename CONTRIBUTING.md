@@ -37,8 +37,8 @@ cd your-repo
 3. Set Up a Virtual Environment (optional but recommended):
 
 ```python
-python -m venv venv
-source venv/bin/activate  # On Windows: .\venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # On Windows: .\venv\Scripts\activate
 ```
 
 4. Install the Project in Editable Mode:
