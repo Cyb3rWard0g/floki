@@ -46,6 +46,7 @@ class AzureOpenAIClient:
         self.api_version = api_version or os.getenv("AZURE_OPENAI_API_VERSION")
         self.azure_endpoint = azure_endpoint # or inferred from AZURE_OPENAI_ENDPOINT env variable.
         self.azure_deployment = azure_deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT")
+        self.azure_ad_token_provider = None
 
         if not self.azure_endpoint or not self.azure_deployment:
             raise ValueError("Azure OpenAI endpoint and deployment must be provided, either via arguments or environment variables.")
