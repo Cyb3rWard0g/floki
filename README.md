@@ -66,7 +66,7 @@ Make sure you have [Docker](https://docs.docker.com/get-started/get-docker/) alr
 
 Initialize Dapr locally to set up a self-hosted environment for development. This process installs Dapr sidecar binaries, runs essential services like Redis (state store and message broker) and Zipkin (observability), and prepares a default components folder. For detailed steps, see the official [guide on initializing Dapr locally](https://docs.dapr.io/getting-started/install-dapr-selfhost/).
 
-To initialize the Dapr control plane containers and create a default configuration file, run:
+To initialize the Dapr control plane containers and create a default configuration file, open an elevated terminal and run:
 
 ```bash
 dapr init
