@@ -1,122 +1,41 @@
-from floki.types.llm import AzureOpenAIClientConfig, AzureOpenAIModelConfig, OpenAIClientConfig, OpenAIModelConfig
+from floki.types.llm import AzureOpenAIModelConfig, OpenAIModelConfig
 from floki.llm.utils import RequestHandler, ResponseHandler
-from floki.llm.openai.openai_client import OpenAIClient
-from floki.llm.openai.azure_client import AzureOpenAIClient
-from floki.prompt.prompty import Prompty
+from floki.llm.openai.client.base import OpenAIClientBase
 from floki.types.message import BaseMessage
 from floki.llm.chat import ChatClientBase
+from floki.prompt.prompty import Prompty
 from floki.tool import AgentTool
 from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type
 from openai.types.chat import ChatCompletionMessage
 from pydantic import BaseModel, Field, model_validator
-from openai import AzureOpenAI, OpenAI
 from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
 
-class OpenAIChatClient(ChatClientBase):
+class OpenAIChatClient(OpenAIClientBase, ChatClientBase):
     """
-    Concrete class for the OpenAI chat endpoint with support for OpenAI and Azure OpenAI services.
-    Always sets provider to 'openai' and api to 'chat'.
+    Chat client for OpenAI models.
+    Combines OpenAI client management with Prompty-specific functionality.
     """
-    model: str = Field(default=None,description="Model name to use, e.g., 'gpt-4'")
-    api_key: Optional[str] = Field(default=None, description="API key for OpenAI or Azure OpenAI. Optional.")
-    base_url: Optional[str] = Field(default=None, description="Base URL for OpenAI API (OpenAI-specific). Optional.")
-    azure_endpoint: Optional[str] = Field(default=None, description="Azure endpoint URL (Azure OpenAI-specific). Optional.")
-    azure_deployment: Optional[str] = Field(default=None, description="Azure deployment name (Azure OpenAI-specific). Optional.")
-    api_version: Optional[str] = Field(default=None, description="Azure API version (Azure OpenAI-specific). Optional.")
-    organization: Optional[str] = Field(default=None, description="Organization for OpenAI or Azure OpenAI. Optional.")
-    project: Optional[str] = Field(default=None, description="Project for OpenAI or Azure OpenAI. Optional.")
-    azure_ad_token: Optional[str] = Field(default=None, description="Azure AD token for authentication (Azure OpenAI-specific). Optional.")
-    azure_client_id: Optional[str] = Field(default=None, description="Client ID for Managed Identity authentication (Azure OpenAI-specific). Optional.")
-    timeout: Union[int, float, Dict[str, Any]] = Field(default=1500, description="Timeout for requests. Can be an integer, float, or dictionary. Defaults to 1500 seconds.")
+    model: str = Field(default=None, description="Model name to use, e.g., 'gpt-4'.")
 
-    @model_validator(mode='before')
+    @model_validator(mode="before")
     def validate_and_initialize(cls, values: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Ensures the 'model' is set during validation. 
+        Ensures the 'model' is set during validation.
         Uses 'azure_deployment' if no model is specified, defaults to 'gpt-4o'.
         """
         if 'model' not in values or values['model'] is None:
             values['model'] = values.get('azure_deployment', 'gpt-4o')
         return values
-    
-    def model_post_init(self, __context: Any)-> None:
+
+    def model_post_init(self, __context: Any) -> None:
         """
-        Initializes private attributes for provider, api, config, and client after validation.
+        Initializes chat-specific attributes after validation.
         """
-        # Set the private provider and api attributes
-        self._provider = "openai"
         self._api = "chat"
-
-        # Set up the private config and client attributes
-        self._config: Union[AzureOpenAIClientConfig, OpenAIClientConfig] = self.get_config()
-        self._client: Union[AzureOpenAI, OpenAI] = self.get_client()
-        return super().model_post_init(__context)
-    
-    def get_config(self) -> Union[AzureOpenAIClientConfig, OpenAIClientConfig]:
-        """
-        Returns the appropriate configuration for OpenAI or Azure OpenAI.
-        """
-        is_azure = self.azure_endpoint or self.azure_deployment
-
-        if is_azure:
-            return AzureOpenAIClientConfig(
-                api_key=self.api_key,
-                organization=self.organization,
-                project=self.project,
-                azure_ad_token=self.azure_ad_token,
-                azure_endpoint=self.azure_endpoint,
-                azure_deployment=self.azure_deployment or self.model,
-                api_version=self.api_version
-            )
-        else:
-            return OpenAIClientConfig(
-                api_key=self.api_key,
-                base_url=self.base_url,
-                organization=self.organization,
-                project=self.project
-            )
-    
-    def get_client(self) -> Union[AzureOpenAI, OpenAI]:
-        """
-        Initialize and return the appropriate client (OpenAI or Azure OpenAI).
-        """
-        config = self.config
-        timeout = self.timeout
-
-        if isinstance(config, OpenAIClientConfig):
-            logger.info("Initializing OpenAI client...")
-            return OpenAIClient(
-                api_key=config.api_key,
-                base_url=config.base_url,
-                organization=config.organization,
-                project=config.project,
-                timeout=timeout
-            ).get_client()
-
-        elif isinstance(config, AzureOpenAIClientConfig):
-            logger.info("Initializing Azure OpenAI client...")
-            return AzureOpenAIClient(
-                api_key=config.api_key,
-                azure_ad_token=config.azure_ad_token,
-                azure_endpoint=config.azure_endpoint,
-                azure_deployment=config.azure_deployment,
-                api_version=config.api_version,
-                organization=config.organization,
-                project=config.project,
-                azure_client_id=self.azure_client_id,
-                timeout=timeout
-            ).get_client()
-    
-    @property
-    def config(self) -> Union[AzureOpenAIClientConfig, OpenAIClientConfig]:
-        return self._config
-
-    @property
-    def client(self) -> Union[OpenAI, AzureOpenAI]:
-        return self._client
+        super().model_post_init(__context)
     
     @classmethod
     def from_prompty(cls, prompty_source: Union[str, Path], timeout: Union[int, float, Dict[str, Any]] = 1500) -> 'OpenAIChatClient':
