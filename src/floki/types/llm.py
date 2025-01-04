@@ -215,9 +215,14 @@ class AudioTranscriptionRequest(BaseModel):
             except Exception as e:
                 raise ValueError(f"Invalid file path: {value}. Error: {e}")
         elif isinstance(value, bytes):
-            return value
+            # Wrap raw bytes with a default filename
+            return "file.mp3", value
         elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
             # Allow BufferedReader or other file-like objects as-is
+            return value
+        elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
+            if value.closed:
+                raise ValueError("File-like object must remain open during request.")
             return value
         elif isinstance(value, tuple):
             # Handle tuples with (filename, bytes or file-like object)
@@ -255,9 +260,11 @@ class AudioTranslationRequest(BaseModel):
             except Exception as e:
                 raise ValueError(f"Invalid file path: {value}. Error: {e}")
         elif isinstance(value, bytes):
-            return value
+            # Wrap raw bytes with a default filename
+            return "file.mp3", value
         elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
-            # Allow BufferedReader or other file-like objects as-is
+            if value.closed:  # Reopen if closed
+                raise ValueError("File-like object must remain open during request.")
             return value
         elif isinstance(value, tuple):
             # Handle tuples with (filename, bytes or file-like object)
