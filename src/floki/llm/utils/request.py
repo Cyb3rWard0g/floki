@@ -3,7 +3,7 @@ from floki.prompt.prompty import Prompty, PromptyHelper
 from floki.types.message import BaseMessage
 from floki.llm.utils import StructureHandler
 from floki.tool.utils.tool import ToolHelper
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 import logging
 
@@ -98,4 +98,32 @@ class RequestHandler:
             logger.info("A response model has been passed to structure the response of the LLM.")
             params = StructureHandler.generate_request(response_model=response_model, llm_provider=llm_provider, **params)
         
-        return params 
+        return params
+    
+    @staticmethod
+    def validate_request(request: Union[BaseModel, Dict[str, Any]], request_class: Type[BaseModel]) -> BaseModel:
+        """
+        Validate and transform a dictionary into a Pydantic object.
+
+        Args:
+            request (Union[BaseModel, Dict[str, Any]]): The request data as a dictionary or a Pydantic object.
+            request_class (Type[BaseModel]): The Pydantic model class for validation.
+
+        Returns:
+            BaseModel: A validated Pydantic object.
+
+        Raises:
+            ValueError: If validation fails.
+        """
+        if isinstance(request, dict):
+            try:
+                request = request_class(**request)
+            except ValidationError as e:
+                raise ValueError(f"Validation error: {e}")
+
+        try:
+            validated_request = request_class.model_validate(request)
+        except ValidationError as e:
+            raise ValueError(f"Validation error: {e}")
+        
+        return validated_request

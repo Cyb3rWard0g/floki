@@ -1,79 +1,29 @@
+from floki.llm.huggingface.client import HFHubInferenceClientBase
 from floki.llm.utils import RequestHandler, ResponseHandler
-from floki.llm.huggingface.client import HFHubInferenceClient
-from floki.types.llm import HFInferenceClientConfig
 from floki.prompt.prompty import Prompty
 from floki.types.message import BaseMessage
 from floki.llm.chat import ChatClientBase
 from floki.tool import AgentTool
 from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type
-from pydantic import BaseModel, Field
-from huggingface_hub import InferenceClient
+from pydantic import BaseModel
 from pathlib import Path
 import logging
 
 logger = logging.getLogger(__name__)
 
-class HFHubChatClient(ChatClientBase):
+class HFHubChatClient(HFHubInferenceClientBase, ChatClientBase):
     """
     Concrete class for the Hugging Face Hub's chat completion API using the Inference API.
     This class extends the ChatClientBase and provides the necessary configurations for Hugging Face models.
     """
-    model: str = Field(default=None, description="Model ID to use from Hugging Face Hub.")
-    api_key: Optional[str] = Field(default=None, description="API key for Hugging Face services. Optional.")
-    base_url: Optional[str] = Field(default=None, description="Base URL for Hugging Face API. Optional.")
-    headers: Optional[Dict[str, str]] = Field(default=None, description="Additional headers to send to the server. Optional.")
-    cookies: Optional[Dict[str, str]] = Field(default=None, description="Cookies to send with the request. Optional.")
-    proxies: Optional[Any] = Field(default=None, description="Proxies to use for the request. Optional.")
-    timeout: Union[int, float, Dict[str, Any]] = Field(default=1500, description="Timeout for requests. Can be an integer, float, or dictionary.")
 
     def model_post_init(self, __context: Any) -> None:
         """
         Initializes private attributes for provider, api, config, and client after validation.
         """
         # Set the private provider and api attributes
-        self._provider = "huggingface"
         self._api = "chat"
-
-        # Set up the private config and client attributes
-        self._config = self.get_config()
-        self._client = self.get_client()
         return super().model_post_init(__context)
-
-    def get_config(self) -> HFInferenceClientConfig:
-        """
-        Returns the appropriate configuration for the Hugging Face Inference API.
-        """
-        return HFInferenceClientConfig(
-            model=self.model,
-            api_key=self.api_key,
-            base_url=self.base_url,
-            headers=self.headers,
-            cookies=self.cookies,
-            proxies=self.proxies
-        )
-
-    def get_client(self) -> InferenceClient:
-        """
-        Initialize and return the Hugging Face Inference client.
-        """
-        config: HFInferenceClientConfig = self.config
-        return HFHubInferenceClient(
-            model=config.model,
-            api_key=config.api_key,
-            base_url=config.base_url,
-            headers=config.headers,
-            cookies=config.cookies,
-            proxies=config.proxies,
-            timeout=self.timeout
-        ).get_client()
-
-    @property
-    def config(self) -> Dict[str, Any]:
-        return self._config
-
-    @property
-    def client(self) -> InferenceClient:
-        return self._client
 
     @classmethod
     def from_prompty(cls, prompty_source: Union[str, Path], timeout: Union[int, float, Dict[str, Any]] = 1500) -> 'HFHubChatClient':

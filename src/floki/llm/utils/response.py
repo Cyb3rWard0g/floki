@@ -1,5 +1,6 @@
 from typing import Union, Dict, Any, Type, Optional, Iterator
 from floki.llm.utils import StreamHandler, StructureHandler
+from dataclasses import is_dataclass, asdict
 from floki.types import ChatCompletion
 from pydantic import BaseModel
 import logging
@@ -43,7 +44,19 @@ class ResponseHandler:
                 else:
                     logger.error("Validation failed for structured response.")
             
-            response_dict = response.model_dump()
+            # Convert response to dictionary
+            if isinstance(response, dict):
+                # Already a dictionary
+                response_dict = response
+            elif is_dataclass(response):
+                # Dataclass instance
+                response_dict = asdict(response)
+            elif isinstance(response, BaseModel):
+                # Pydantic object
+                response_dict = response.model_dump()
+            else:
+                raise ValueError(f"Unsupported response type: {type(response)}")
+            
             completion = ChatCompletion(**response_dict)
             logger.debug(f"Chat completion response: {completion}")
             return completion

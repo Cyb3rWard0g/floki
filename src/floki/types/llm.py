@@ -40,7 +40,7 @@ class AzureOpenAIClientConfig(BaseModel):
     organization: Optional[str] = Field(None, description="Azure organization associated with the OpenAI resource")
     project: Optional[str] = Field(None, description="Azure project associated with the OpenAI resource")
     api_version: Optional[str] = Field("2024-07-01-preview", description="API version for Azure OpenAI models")
-    azure_endpoint: Optional[str] = Field(description="Azure endpoint for Azure OpenAI models")
+    azure_endpoint: Optional[str] = Field(None, description="Azure endpoint for Azure OpenAI models")
     azure_deployment: Optional[str] = Field(default="gpt-4o", description="Azure deployment for Azure OpenAI models")
     azure_client_id: Optional[str] = Field(default=None, description="Client ID for Managed Identity authentication.")
 
@@ -60,6 +60,7 @@ class AzureOpenAIModelConfig(AzureOpenAIClientConfig):
 
 class HFHubModelConfig(HFInferenceClientConfig):
     type: Literal["huggingface"] = Field("huggingface", description="Type of the model, must always be 'huggingface'")
+    name: str = Field(default=None, description="Name of the OpenAI model")
 
 class OpenAIParamsBase(BaseModel):
     """
@@ -119,10 +120,40 @@ class OpenAIChatCompletionParams(OpenAIParamsBase):
             raise PydanticUseDefault()
         return v
 
+class HFHubChatCompletionParams(BaseModel):
+    """
+    Specific settings for Hugging Face Hub Chat Completion endpoint.
+    """
+    model: Optional[str] = Field(None, description="The model to use for chat-completion. Can be a model ID or a URL to a deployed Inference Endpoint.")
+    frequency_penalty: Optional[float] = Field(0.0, description="Penalizes new tokens based on their existing frequency in the text so far.")
+    logit_bias: Optional[Dict[Union[str, int], float]] = Field(None, description="Modify the likelihood of specified tokens appearing in the completion.")
+    logprobs: Optional[bool] = Field(False, description="Whether to return log probabilities of the output tokens or not.")
+    max_tokens: Optional[int] = Field(100, ge=1, description="Maximum number of tokens allowed in the response.")
+    n: Optional[int] = Field(None, description="UNUSED. Included for compatibility.")
+    presence_penalty: Optional[float] = Field(0.0, description="Penalizes new tokens based on their presence in the text so far.")
+    response_format: Optional[Union[Dict[str, Any], str]] = Field(None, description="Grammar constraints. Can be either a JSONSchema or a regex.")
+    seed: Optional[int] = Field(None, description="Seed for reproducible control flow.")
+    stop: Optional[Union[str, List[str]]] = Field(None, description="Up to four strings which trigger the end of the response.")
+    stream: Optional[bool] = Field(False, description="Enable realtime streaming of responses.")
+    stream_options: Optional[Dict[str, Any]] = Field(None, description="Options for streaming completions.")
+    temperature: Optional[float] = Field(1.0, description="Controls randomness of the generations.")
+    top_logprobs: Optional[int] = Field(None, description="Number of most likely tokens to return at each position.")
+    top_p: Optional[float] = Field(None, description="Fraction of the most likely next words to sample from.")
+    tool_choice: Optional[Union[str, Dict[str, Any]]] = Field(None, description="The tool to use for the completion. Defaults to 'auto'.")
+    tool_prompt: Optional[str] = Field(None, description="A prompt to be appended before the tools.")
+    tools: Optional[List[Dict[str, Any]]] = Field(None, description="A list of tools the model may call.")
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def none_to_default(cls, v):
+        if v is None:
+            raise PydanticUseDefault()
+        return v
+
 class PromptyModelConfig(BaseModel):
     api: Literal["chat", "completion"] = Field("chat", description="The API to use, either 'chat' or 'completion'")
     configuration: Union[OpenAIModelConfig, AzureOpenAIModelConfig, HFHubModelConfig] = Field(..., description="Model configuration settings")
-    parameters: Union[OpenAITextCompletionParams, OpenAIChatCompletionParams] = Field(..., description="Parameters for the model request")
+    parameters: Union[OpenAITextCompletionParams, OpenAIChatCompletionParams, HFHubChatCompletionParams] = Field(..., description="Parameters for the model request")
     response: Literal["first", "full"] = Field("first", description="Determines if full response or just the first one is returned")
 
     @field_validator("*", mode="before")
@@ -155,10 +186,15 @@ class PromptyModelConfig(BaseModel):
                 parameters = OpenAIChatCompletionParams(**parameters)
             elif configuration and isinstance(configuration, AzureOpenAIModelConfig):
                 parameters = OpenAIChatCompletionParams(**parameters)
+            elif configuration and isinstance(configuration, HFHubModelConfig):
+                parameters = HFHubChatCompletionParams(**parameters)
 
         if configuration and parameters:
-            # Now it's safe to access `.name` or `.azure_deployment`
-            parameters.model = configuration.name or configuration.azure_deployment
+            # Check if 'name' or 'azure_deployment' is explicitly set
+            if "name" in configuration.model_fields_set:
+                parameters.model = configuration.name
+            elif "azure_deployment" in configuration.model_fields_set:
+                parameters.model = configuration.azure_deployment
 
         values['configuration'] = configuration
         values['parameters'] = parameters
@@ -215,9 +251,14 @@ class AudioTranscriptionRequest(BaseModel):
             except Exception as e:
                 raise ValueError(f"Invalid file path: {value}. Error: {e}")
         elif isinstance(value, bytes):
-            return value
+            # Wrap raw bytes with a default filename
+            return "file.mp3", value
         elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
             # Allow BufferedReader or other file-like objects as-is
+            return value
+        elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
+            if value.closed:
+                raise ValueError("File-like object must remain open during request.")
             return value
         elif isinstance(value, tuple):
             # Handle tuples with (filename, bytes or file-like object)
@@ -255,9 +296,11 @@ class AudioTranslationRequest(BaseModel):
             except Exception as e:
                 raise ValueError(f"Invalid file path: {value}. Error: {e}")
         elif isinstance(value, bytes):
-            return value
+            # Wrap raw bytes with a default filename
+            return "file.mp3", value
         elif isinstance(value, BufferedReader) or (hasattr(value, "read") and callable(value.read)):
-            # Allow BufferedReader or other file-like objects as-is
+            if value.closed:  # Reopen if closed
+                raise ValueError("File-like object must remain open during request.")
             return value
         elif isinstance(value, tuple):
             # Handle tuples with (filename, bytes or file-like object)

@@ -39,55 +39,20 @@ class AzureOpenAIClient:
             azure_client_id: Managed Identity client ID (optional).
             timeout: Request timeout in seconds (default: 1500).
         """
-        self.api_key = api_key # or inferred from AZURE_OPENAI_API_KEY env variable.
-        self.azure_ad_token = azure_ad_token # or inferred from AZURE_OPENAI_AD_TOKEN env variable.
-        self.organization = organization # or inferred from OPENAI_ORG_ID env variable.
-        self.project = project # or inferred from OPENAI_PROJECT_ID env veriable.
+        # Use provided values or fallback to environment variables
+        self.api_key = api_key or os.getenv("AZURE_OPENAI_API_KEY")
+        self.azure_ad_token = azure_ad_token or os.getenv("AZURE_OPENAI_AD_TOKEN")
+        self.organization = organization or os.getenv("OPENAI_ORG_ID")
+        self.project = project or os.getenv("OPENAI_PROJECT_ID")
         self.api_version = api_version or os.getenv("AZURE_OPENAI_API_VERSION")
-        self.azure_endpoint = azure_endpoint # or inferred from AZURE_OPENAI_ENDPOINT env variable.
+        self.azure_endpoint = azure_endpoint or os.getenv("AZURE_OPENAI_ENDPOINT")
         self.azure_deployment = azure_deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT")
-        self.azure_ad_token_provider = None
+        self.azure_client_id = azure_client_id or os.getenv("AZURE_CLIENT_ID")
 
         if not self.azure_endpoint or not self.azure_deployment:
             raise ValueError("Azure OpenAI endpoint and deployment must be provided, either via arguments or environment variables.")
 
         self.timeout = HTTPHelper.configure_timeout(timeout)
-
-        # Authentication: API Key, Azure AD Token, or Azure Identity
-        # The api_key, azure_ad_token, and azure_ad_token_provider arguments are mutually exclusive.
-        if self.api_key:
-            logger.info("Using API key for authentication.")
-            self.client = AzureOpenAI(
-                api_key=self.api_key,
-                organization=self.organization,
-                project=self.project,
-                api_version=self.api_version,
-                azure_endpoint=self.azure_endpoint,
-                azure_deployment=self.azure_deployment
-            ) 
-        elif self.azure_ad_token:
-            logger.info("Using Azure AD token for authentication.")
-            self.client = AzureOpenAI(
-                azure_ad_token=self.azure_ad_token,
-                organization=self.organization,
-                project=self.project,
-                api_version=self.api_version,
-                azure_endpoint=self.azure_endpoint,
-                azure_deployment=self.azure_deployment
-            )
-        else:
-            logger.info("No API key or Azure AD token provided, attempting to use Azure Identity credentials.")
-            if azure_client_id:
-                logger.info(f"Using Managed Identity with client ID: {azure_client_id}.")
-                credential = ManagedIdentityCredential(client_id=azure_client_id)
-            else:
-                logger.info("Using DefaultAzureCredential.")
-                credential = DefaultAzureCredential(exclude_shared_token_cache_credential=True)
-            
-            # Get bearer token provider using Azure Identity credentials
-            self.azure_ad_token_provider = get_bearer_token_provider(
-                credential, "https://cognitiveservices.azure.com/.default"
-            )
     
     def get_client(self) -> AzureOpenAI:
         """
@@ -96,13 +61,44 @@ class AzureOpenAIClient:
         Returns:
             AzureOpenAI: The initialized Azure OpenAI client.
         """
+        # Authentication: API Key, Azure AD Token, or Azure Identity
+        # The api_key, azure_ad_token, and azure_ad_token_provider arguments are mutually exclusive.
+        # Case 1: Use API Key
+        if self.api_key:
+            logger.info("Using API key for authentication.")
+            return self._create_client(api_key=self.api_key)
+
+        # Case 2: Use Azure AD Token
+        if self.azure_ad_token:
+            logger.info("Using Azure AD token for authentication.")
+            return self._create_client(azure_ad_token=self.azure_ad_token)
+
+        # Case 3: Use Azure Identity Credentials
+        logger.info("No API key or Azure AD token provided, attempting to use Azure Identity credentials.")
+        try:
+            credential = (
+                ManagedIdentityCredential(client_id=self.azure_client_id)
+                if self.azure_client_id
+                else DefaultAzureCredential(exclude_shared_token_cache_credential=True)
+            )
+            azure_ad_token_provider = get_bearer_token_provider(
+                credential, "https://cognitiveservices.azure.com/.default"
+            )
+            return self._create_client(azure_ad_token_provider=azure_ad_token_provider)
+        except Exception as e:
+            logger.error(f"Failed to initialize Azure Identity credentials: {e}")
+            raise ValueError("Unable to authenticate using Azure Identity credentials. Check your setup.") from e
+
+    def _create_client(self, **kwargs) -> AzureOpenAI:
+        """
+        Helper method to create and return an Azure OpenAI client.
+        """
         return AzureOpenAI(
-            azure_ad_token_provider=self.azure_ad_token_provider,
-            organization=self.organization,
-            project=self.project,
-            api_version=self.api_version,
             azure_endpoint=self.azure_endpoint,
-            azure_deployment=self.azure_deployment
+            azure_deployment=self.azure_deployment,
+            api_version=self.api_version,
+            timeout=self.timeout,
+            **kwargs
         )
     
     @classmethod

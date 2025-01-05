@@ -1,4 +1,3 @@
-from .openai_client import OpenAIClient
-from .azure_client import AzureOpenAIClient
+from .client import OpenAIClient, AzureOpenAIClient
 from .chat import OpenAIChatClient
 from .audio import OpenAIAudioClient
