@@ -40,7 +40,7 @@ class AzureOpenAIClientConfig(BaseModel):
     organization: Optional[str] = Field(None, description="Azure organization associated with the OpenAI resource")
     project: Optional[str] = Field(None, description="Azure project associated with the OpenAI resource")
     api_version: Optional[str] = Field("2024-07-01-preview", description="API version for Azure OpenAI models")
-    azure_endpoint: Optional[str] = Field(description="Azure endpoint for Azure OpenAI models")
+    azure_endpoint: Optional[str] = Field(None, description="Azure endpoint for Azure OpenAI models")
     azure_deployment: Optional[str] = Field(default="gpt-4o", description="Azure deployment for Azure OpenAI models")
     azure_client_id: Optional[str] = Field(default=None, description="Client ID for Managed Identity authentication.")
 
@@ -190,8 +190,11 @@ class PromptyModelConfig(BaseModel):
                 parameters = HFHubChatCompletionParams(**parameters)
 
         if configuration and parameters:
-            # Now it's safe to access `.name` or `.azure_deployment`
-            parameters.model = configuration.name or configuration.azure_deployment
+            # Check if 'name' or 'azure_deployment' is explicitly set
+            if "name" in configuration.model_fields_set:
+                parameters.model = configuration.name
+            elif "azure_deployment" in configuration.model_fields_set:
+                parameters.model = configuration.azure_deployment
 
         values['configuration'] = configuration
         values['parameters'] = parameters

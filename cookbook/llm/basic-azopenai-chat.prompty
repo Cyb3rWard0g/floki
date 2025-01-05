@@ -1,6 +1,6 @@
 ---
 name: Basic Prompt
-description: A basic prompt that uses the chat API to answer questions
+description: A basic prompt that uses the Azure OpenAI chat API to answer questions
 model:
     api: chat
     configuration:
