@@ -1,6 +1,6 @@
 from floki.tool.utils.openapi import OpenAPISpecParser, openapi_spec_to_openai_fn
 from floki.agent.patterns.react import ReActAgent
-from floki.storage import ChromaVectorStore, VectorStoreBase
+from floki.storage import VectorStoreBase
 from floki.tool.storage import VectorToolStore
 from typing import Dict, Optional, List, Any
 from pydantic import Field, ConfigDict
@@ -30,17 +30,10 @@ class OpenAPIReActAgent(ReActAgent):
         description="Instructions to guide the agent's behavior."
     )
     spec_parser: OpenAPISpecParser = Field(..., description="Parser for handling OpenAPI specifications.")
+    api_vector_store: VectorStoreBase = Field(..., description="Vector store for storing API definitions.")
     auth_header: Optional[Dict] = Field(None, description="Authentication headers for executing API calls.")
-    api_vector_store: Optional[VectorStoreBase] = Field(None, description="Vector store for storing API definitions.")
-    api_vector_store: VectorStoreBase = Field(
-        default_factory=lambda: ChromaVectorStore(
-            name="api_toolbox",
-            embedding_service="sentence-transformers",
-            model="all-MiniLM-L6-v2"
-        ),
-        description="Vector store for storing API definitions."
-    )
-    tool_vector_store: Optional[VectorToolStore] = Field(None, description="Internal vector store for OpenAPI tools.")
+    
+    tool_vector_store: Optional[VectorToolStore] = Field(default=None, init=False, description="Internal vector store for OpenAPI tools.")
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

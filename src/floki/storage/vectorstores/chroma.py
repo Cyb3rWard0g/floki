@@ -16,7 +16,6 @@ class ChromaVectorStore(VectorStoreBase):
 
     name: str = Field(default="floki", description="The name of the Chroma collection.")
     api_key: Optional[str] = Field(None, description="API key for the embedding service.")
-    model: Optional[str] = Field(None, description="Model name for generating embeddings.")
     embedding_function: Optional[EmbedderBase] = Field(default_factory=OpenAIEmbedder, description="Embeddings function.")
     persistent: bool = Field(False, description="Whether to enable persistent storage.")
     path: Optional[str] = Field(None, description="Path for persistent storage.")
@@ -44,7 +43,7 @@ class ChromaVectorStore(VectorStoreBase):
 
         if not self.settings:
             # Start with base settings
-            settings_kwargs = {"allow_reset": True}
+            settings_kwargs = {"allow_reset": True, "anonymized_telemetry": False}
 
             # Add specific settings based on the configuration
             if self.client_server_mode:
@@ -63,7 +62,7 @@ class ChromaVectorStore(VectorStoreBase):
             self.settings = ChromaSettings(**settings_kwargs)
 
         # Initialize Chroma client and collection
-        self.client = Client(settings=self.settings)
+        self.client: Client = Client(settings=self.settings)
         self.collection = self.client.get_or_create_collection(
             name=self.name,
             embedding_function=self.embedding_function,
