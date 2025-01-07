@@ -22,7 +22,7 @@ class HFInferenceClientConfig(BaseModel):
         return v
 
 class OpenAIClientConfig(BaseModel):
-    base_url: Optional[str] = Field("https://api.openai.com/v1", validate_default=True, description="Base URL for the OpenAI API")
+    base_url: Optional[str] = Field(None, description="Base URL for the OpenAI API")
     api_key: Optional[str] = Field(None, description="API key to authenticate the OpenAI API")
     organization: Optional[str] = Field(None, description="Organization name for OpenAI")
     project: Optional[str] = Field(None, description="OpenAI project name.")
@@ -41,7 +41,7 @@ class AzureOpenAIClientConfig(BaseModel):
     project: Optional[str] = Field(None, description="Azure project associated with the OpenAI resource")
     api_version: Optional[str] = Field("2024-07-01-preview", description="API version for Azure OpenAI models")
     azure_endpoint: Optional[str] = Field(None, description="Azure endpoint for Azure OpenAI models")
-    azure_deployment: Optional[str] = Field(default="gpt-4o", description="Azure deployment for Azure OpenAI models")
+    azure_deployment: Optional[str] = Field(default=None, description="Azure deployment for Azure OpenAI models")
     azure_client_id: Optional[str] = Field(default=None, description="Client ID for Managed Identity authentication.")
 
     @field_validator("*", mode="before")
@@ -53,7 +53,7 @@ class AzureOpenAIClientConfig(BaseModel):
 
 class OpenAIModelConfig(OpenAIClientConfig):
     type: Literal["openai"] = Field("openai", description="Type of the model, must always be 'openai'")
-    name: str = Field(default="gpt-4o", description="Name of the OpenAI model")
+    name: str = Field(default=None, description="Name of the OpenAI model")
 
 class AzureOpenAIModelConfig(AzureOpenAIClientConfig):
     type: Literal["azure_openai"] = Field("azure_openai", description="Type of the model, must always be 'azure_openai'")
@@ -66,7 +66,7 @@ class OpenAIParamsBase(BaseModel):
     """
     Common request settings for OpenAI services.
     """
-    model: Optional[str] = Field('gpt-4o', description="ID of the model to use")
+    model: Optional[str] = Field(None, description="ID of the model to use")
     temperature: Optional[float] = Field(0, ge=0.0, le=2.0, description="Sampling temperature")
     max_tokens: Optional[int] = Field(None, description="Maximum number of tokens to generate. Can be None or a positive integer.")
     top_p: Optional[float] = Field(1.0, ge=0.0, le=1.0, description="Nucleus sampling probability mass")
