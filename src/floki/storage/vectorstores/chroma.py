@@ -1,9 +1,8 @@
 from floki.storage.vectorstores import VectorStoreBase
-from floki.storage.vectorstores.chroma.embedding import ChromaEmbeddingManager
+from floki.document.embedder import OpenAIEmbedder
+from floki.document.embedder.base import EmbedderBase
 from typing import List, Dict, Optional, Iterable, Union, Any
 from pydantic import Field, ConfigDict
-from chromadb.config import Settings as ChromaSettings
-from chromadb import Client
 import uuid
 import logging
 
@@ -12,53 +11,56 @@ logger = logging.getLogger(__name__)
 class ChromaVectorStore(VectorStoreBase):
     """
     Chroma-based vector store implementation with flexible persistence and server mode.
+    Supports storing, querying, and filtering documents with embeddings generated on-the-fly.
     """
 
-    name: str = Field(..., description="The name of the Chroma collection.")
-    embedding_service: str = Field(..., description="The embedding service to use ('openai', 'huggingface', etc.).")
+    name: str = Field(default="floki", description="The name of the Chroma collection.")
     api_key: Optional[str] = Field(None, description="API key for the embedding service.")
     model: Optional[str] = Field(None, description="Model name for generating embeddings.")
-    
+    embedding_function: Optional[EmbedderBase] = Field(default_factory=OpenAIEmbedder, description="Embeddings function.")
     persistent: bool = Field(False, description="Whether to enable persistent storage.")
     path: Optional[str] = Field(None, description="Path for persistent storage.")
-    
     client_server_mode: bool = Field(False, description="Whether to enable client-server mode.")
     host: str = Field("localhost", description="Host for the Chroma server in client-server mode.")
     port: int = Field(8000, description="Port for the Chroma server in client-server mode.")
+    settings: Optional[Any] = Field(None, description="Optional Chroma settings object.")
     
-    settings: Optional[ChromaSettings] = Field(None, description="Optional Chroma settings object.")
-
-    client: Optional[Client] = Field(default=None, init=False, description="Chroma client instance.")
+    client: Optional[Any] = Field(default=None, init=False, description="Chroma client instance.")
     collection: Optional[Any] = Field(default=None, init=False, description="Chroma collection for document storage.")
-    embedding_manager: Optional[ChromaEmbeddingManager] = Field(default=None, init=False, description="Embedding manager.")
-
+    
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     def model_post_init(self, __context: Any) -> None:
         """
         Post-initialization setup for ChromaVectorStore, configuring the embedding manager, client, and collection.
         """
-        # Initialize embedding manager
-        self.embedding_manager = ChromaEmbeddingManager(
-            service=self.embedding_service, api_key=self.api_key, model=self.model
-        )
-        self.embedding_function = self.embedding_manager.embedding_function
+        try:
+            from chromadb import Client
+            from chromadb.config import Settings as ChromaSettings
+        except ImportError:
+            raise ImportError(
+                "The `chromadb` library is not installed. Install it using `pip install chromadb`."
+            )
 
-        # Use provided settings or construct settings based on flags
         if not self.settings:
+            # Start with base settings
+            settings_kwargs = {"allow_reset": True}
+
+            # Add specific settings based on the configuration
             if self.client_server_mode:
-                self.settings = ChromaSettings(
-                    chroma_server_host=self.host,
-                    chroma_server_http_port=self.port,
-                    chroma_api_impl="chromadb.api.fastapi.FastAPI",
-                )
+                settings_kwargs.update({
+                    "chroma_server_host": self.host,
+                    "chroma_server_http_port": self.port,
+                    "chroma_api_impl": "chromadb.api.fastapi.FastAPI",
+                })
             elif self.persistent:
-                self.settings = ChromaSettings(
-                    persist_directory=self.path or "db",
-                    is_persistent=True,
-                )
-            else:
-                self.settings = ChromaSettings()
+                settings_kwargs.update({
+                    "persist_directory": self.path or "db",
+                    "is_persistent": True,
+                })
+
+            # Initialize settings
+            self.settings = ChromaSettings(**settings_kwargs)
 
         # Initialize Chroma client and collection
         self.client = Client(settings=self.settings)
@@ -69,10 +71,8 @@ class ChromaVectorStore(VectorStoreBase):
         )
 
         logger.info(f"ChromaVectorStore initialized with collection: {self.name}")
-
-        # Complete post-initialization
         super().model_post_init(__context)
-    
+
     def add(self, documents: Iterable[str], embeddings: Optional[List[List[float]]] = None, metadatas: Optional[List[dict]] = None, ids: Optional[List[str]] = None):
         """
         Adds documents and their corresponding metadata to the Chroma collection.
@@ -80,8 +80,9 @@ class ChromaVectorStore(VectorStoreBase):
         Args:
             documents (Iterable[str]): The documents to add to the collection.
             embeddings (Optional[List[List[float]]]): The embeddings of the documents to add to the collection.
+                If None, the configured embedding function will automatically generate embeddings.
             metadatas (Optional[List[dict]]): The metadata associated with each text.
-            ids (Optional[List[str]]): The IDs for each text.
+            ids (Optional[List[str]]): The IDs for each text. If not provided, random UUIDs are generated.
         """
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
@@ -126,11 +127,9 @@ class ChromaVectorStore(VectorStoreBase):
         ]
 
     def reset(self):
-        """
-        Resets the Chroma database.
-        """
+        """Resets the Chroma database."""
         self.client.reset()
-    
+
     def update(self, ids: List[str], metadatas: Optional[List[dict]] = None, documents: Optional[List[str]] = None):
         """
         Updates items in the Chroma collection.
@@ -141,7 +140,7 @@ class ChromaVectorStore(VectorStoreBase):
             documents (Optional[List[str]]): The new documents for the items.
         """
         self.collection.update(ids=ids, metadatas=metadatas, documents=documents)
-    
+
     def count(self) -> int:
         """
         Counts the number of items in the Chroma collection.
@@ -150,7 +149,7 @@ class ChromaVectorStore(VectorStoreBase):
             int: The number of items in the collection.
         """
         return self.collection.count()
-    
+
     def search_similar(self, query_texts: Optional[Union[List[str], str]] = None, query_embeddings: Optional[List[List[float]]] = None, k: int = 4) -> List[Dict]:
         """
         Performs a similarity search in the Chroma collection using either query texts or query embeddings.
@@ -170,31 +169,11 @@ class ChromaVectorStore(VectorStoreBase):
                 results = self.collection.query(query_embeddings=query_embeddings, n_results=k)
             else:
                 raise ValueError("Either query_texts or query_embeddings must be provided.")
-            
-            if results is None:
-                raise ValueError("Query returned None. Check if the collection is correctly populated and the query parameters are valid.")
-            
             return results
         except Exception as e:
             logger.error(f"An error occurred during similarity search: {e}")
             return []
-    
-    def embed_documents(self, documents: List[str]) -> List[List[float]]:
-        """
-        Embeds documents using the embedding function.
 
-        Args:
-            documents (List[str]): List of documents to embed.
-
-        Returns:
-            List[List[float]]: List of embeddings corresponding to the documents.
-        """
-        try:
-            return self.embedding_function(documents)
-        except Exception as e:
-            logger.error(f"An error occurred during document embedding: {e}")
-            return []
-    
     def query_with_filters(self, query_texts: Optional[List[str]] = None, query_embeddings: Optional[List[List[float]]] = None, k: int = 4, where: Optional[Dict] = None) -> List[Dict]:
         """
         Queries the Chroma collection with additional filters using either query texts or query embeddings.
@@ -210,15 +189,11 @@ class ChromaVectorStore(VectorStoreBase):
         """
         try:
             if query_texts is not None:
-                results = self.collection.query(query_texts=query_texts, n_results=k, where=where, include=["distances", "documents"])
+                results = self.collection.query(query_texts=query_texts, n_results=k, where=where, include=["distances", "documents", "metadatas"])
             elif query_embeddings is not None:
-                results = self.collection.query(query_embeddings=query_embeddings, n_results=k, where=where, include=["distances", "documents"])
+                results = self.collection.query(query_embeddings=query_embeddings, n_results=k, where=where, include=["distances", "documents", "metadatas"])
             else:
                 raise ValueError("Either query_texts or query_embeddings must be provided.")
-            
-            if results is None:
-                raise ValueError("Query returned None. Check if the collection is correctly populated and the query parameters are valid.")
-            
             return results
         except Exception as e:
             logger.error(f"An error occurred during filtered query search: {e}")
