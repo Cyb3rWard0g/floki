@@ -1,5 +1,5 @@
 from floki.storage.vectorstores import VectorStoreBase
-from floki.document.embedder import OpenAIEmbedder
+from floki.document.embedder import SentenceTransformerEmbedder
 from floki.document.embedder.base import EmbedderBase
 from typing import List, Dict, Optional, Iterable, Union, Any
 from pydantic import Field, ConfigDict
@@ -16,7 +16,7 @@ class ChromaVectorStore(VectorStoreBase):
 
     name: str = Field(default="floki", description="The name of the Chroma collection.")
     api_key: Optional[str] = Field(None, description="API key for the embedding service.")
-    embedding_function: Optional[EmbedderBase] = Field(default_factory=OpenAIEmbedder, description="Embeddings function.")
+    embedding_function: Optional[EmbedderBase] = Field(default_factory=SentenceTransformerEmbedder, description="Embedding function for embedding generation.")
     persistent: bool = Field(False, description="Whether to enable persistent storage.")
     path: Optional[str] = Field(None, description="Path for persistent storage.")
     client_server_mode: bool = Field(False, description="Whether to enable client-server mode.")
@@ -38,7 +38,8 @@ class ChromaVectorStore(VectorStoreBase):
             from chromadb.config import Settings as ChromaSettings
         except ImportError:
             raise ImportError(
-                "The `chromadb` library is not installed. Install it using `pip install chromadb`."
+                "The `chromadb` library is required to use this store. "
+                "Install it using `pip install chromadb`."
             )
 
         if not self.settings:
@@ -72,7 +73,7 @@ class ChromaVectorStore(VectorStoreBase):
         logger.info(f"ChromaVectorStore initialized with collection: {self.name}")
         super().model_post_init(__context)
 
-    def add(self, documents: Iterable[str], embeddings: Optional[List[List[float]]] = None, metadatas: Optional[List[dict]] = None, ids: Optional[List[str]] = None):
+    def add(self, documents: Iterable[str], embeddings: Optional[List[List[float]]] = None, metadatas: Optional[List[dict]] = None, ids: Optional[List[str]] = None) -> List[str]:
         """
         Adds documents and their corresponding metadata to the Chroma collection.
 
@@ -83,10 +84,15 @@ class ChromaVectorStore(VectorStoreBase):
             metadatas (Optional[List[dict]]): The metadata associated with each text.
             ids (Optional[List[str]]): The IDs for each text. If not provided, random UUIDs are generated.
         """
-        if ids is None:
-            ids = [str(uuid.uuid4()) for _ in documents]
+        try:
+            if ids is None:
+                ids = [str(uuid.uuid4()) for _ in documents]
 
-        self.collection.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
+            self.collection.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
+            return ids
+        except Exception as e:
+            logger.error(f"Failed to add documents: {e}")
+            raise
 
     def delete(self, ids: Optional[List[int]] = None) -> Optional[bool]:
         """
