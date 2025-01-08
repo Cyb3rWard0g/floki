@@ -994,38 +994,38 @@
 <p><a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr workflows</a> provide a solid framework for managing long-running processes and interactions across distributed systems using the Dapr Python SDK. Floki builds on this by introducing tasks, which simplify defining and managing workflows while adding features like tool integrations and LLM-powered reasoning. This approach allows you to start with basic Dapr workflows and expand to more advanced capabilities, such as LLM-driven tasks or multi-agent coordination, as your needs grow.</p>
 <h2 id="default-dapr-workflows">Default Dapr Workflows<a class="headerlink" href="#default-dapr-workflows" title="Permanent link">&para;</a></h2>
 <p>Creating a <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr workflow</a> is straightforward. Start by creating a python script <code>wf_taskchain_original_activity.py</code> and initializing the <code>WorkflowRuntime</code>, which manages the execution of workflows.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">dapr.ext.workflow</span> <span class="k">as</span> <span class="nn">wf</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">dapr.ext.workflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wf</span>
 
 <span class="n">wfr</span> <span class="o">=</span> <span class="n">wf</span><span class="o">.</span><span class="n">WorkflowRuntime</span><span class="p">()</span>
 </code></pre></div>
 <p>Next, define the workflow logic and the individual tasks it will execute. In this example, we pass a number through a sequence of steps, where each step performs an operation on the input. This follows the <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-patterns/#task-chaining">Dapr Task chaining pattern</a> commonly used in Dapr workflows.</p>
 <div class="language-python highlight"><pre><span></span><code><span class="nd">@wfr</span><span class="o">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;random_workflow&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">wf</span><span class="o">.</span><span class="n">DaprWorkflowContext</span><span class="p">,</span> <span class="n">wf_input</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">wf</span><span class="o">.</span><span class="n">DaprWorkflowContext</span><span class="p">,</span> <span class="n">wf_input</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">result1</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step1</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">wf_input</span><span class="p">)</span>
     <span class="n">result2</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step2</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result1</span><span class="p">)</span>
     <span class="n">result3</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step3</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result2</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">result1</span><span class="p">,</span> <span class="n">result2</span><span class="p">,</span> <span class="n">result3</span><span class="p">]</span>
 
 <span class="nd">@wfr</span><span class="o">.</span><span class="n">activity</span>
-<span class="k">def</span> <span class="nf">step1</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">activity_input</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">step1</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 1: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">+</span> <span class="mi">1</span>
 
 <span class="nd">@wfr</span><span class="o">.</span><span class="n">activity</span>
-<span class="k">def</span> <span class="nf">step2</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">activity_input</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">step2</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 2: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">*</span> <span class="mi">2</span>
 
 <span class="nd">@wfr</span><span class="o">.</span><span class="n">activity</span>
-<span class="k">def</span> <span class="nf">step3</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">activity_input</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">step3</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 3: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">^</span> <span class="mi">2</span>
 </code></pre></div>
 <p>Finally, start the <code>WorkflowRuntime</code>, create a <code>DaprWorkflowClient</code>, and schedule the workflow. The rest of the script monitors the workflow's progress and handles its completion.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">wfr</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -1073,32 +1073,32 @@
 <p class="admonition-title">Info</p>
 <p>The same example as before can be written in the following way. While the difference might not be immediately noticeable, this is a straightforward example of task chaining using Python functions. Create a file named <code>wf_taskchain_floki_activity.py</code>.</p>
 </div>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">WorkflowApp</span>
-<span class="kn">from</span> <span class="nn">floki.types</span> <span class="kn">import</span> <span class="n">DaprWorkflowContext</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkflowApp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">floki.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DaprWorkflowContext</span>
 
 <span class="n">wfapp</span> <span class="o">=</span> <span class="n">WorkflowApp</span><span class="p">()</span>
 
 <span class="nd">@wfapp</span><span class="o">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;random_workflow&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span><span class="n">DaprWorkflowContext</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span><span class="n">DaprWorkflowContext</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">result1</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step1</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">)</span>
     <span class="n">result2</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step2</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result1</span><span class="p">)</span>
     <span class="n">result3</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step3</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result2</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">result1</span><span class="p">,</span> <span class="n">result2</span><span class="p">,</span> <span class="n">result3</span><span class="p">]</span>
 
 <span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span>
-<span class="k">def</span> <span class="nf">step1</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">step1</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 1: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">+</span> <span class="mi">1</span>
 
 <span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span>
-<span class="k">def</span> <span class="nf">step2</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">step2</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 2: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">*</span> <span class="mi">2</span>
 
 <span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span>
-<span class="k">def</span> <span class="nf">step3</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">step3</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 3: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">^</span> <span class="mi">2</span>

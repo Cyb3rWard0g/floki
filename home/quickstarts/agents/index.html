@@ -957,31 +957,31 @@ load_dotenv()  # take environment variables from .env.
 <h2 id="create-a-basic-agent">Create a Basic Agent<a class="headerlink" href="#create-a-basic-agent" title="Permanent link">&para;</a></h2>
 <p>In <code>Floki</code>, tools bridge basic Python functions and <code>OpenAI's Function Calling</code> format, enabling seamless interaction between agents and external tasks. You can use <code>Pydantic</code> models to define the schema for tool arguments, ensuring structured input and validation.</p>
 <p>By annotating functions with <code>@tool</code> and specifying the argument schema, you transform them into <code>Agent tools</code> that can be invoke dynamically during workflows. This approach makes your tools compatible with LLM-driven decision-making and execution.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">tool</span>
-<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span>
 
-<span class="k">class</span> <span class="nc">GetWeatherSchema</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">GetWeatherSchema</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">location</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;location to get weather for&quot;</span><span class="p">)</span>
 
 <span class="nd">@tool</span><span class="p">(</span><span class="n">args_model</span><span class="o">=</span><span class="n">GetWeatherSchema</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">get_weather</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">location</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get weather information based on location.&quot;&quot;&quot;</span>
-    <span class="kn">import</span> <span class="nn">random</span>
+    <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
     <span class="n">temperature</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">80</span><span class="p">)</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">location</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">temperature</span><span class="si">}</span><span class="s2">F.&quot;</span>
 
-<span class="k">class</span> <span class="nc">JumpSchema</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">JumpSchema</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">distance</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Distance for agent to jump&quot;</span><span class="p">)</span>
 
 <span class="nd">@tool</span><span class="p">(</span><span class="n">args_model</span><span class="o">=</span><span class="n">JumpSchema</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">jump</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">jump</span><span class="p">(</span><span class="n">distance</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Jump a specific distance.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;I jumped the following distance </span><span class="si">{</span><span class="n">distance</span><span class="si">}</span><span class="s2">&quot;</span>
 
 <span class="n">tools</span> <span class="o">=</span> <span class="p">[</span><span class="n">get_weather</span><span class="p">,</span><span class="n">jump</span><span class="p">]</span>
 </code></pre></div>
 <p>Next, create your Agent by specifying key attributes such as <code>name</code>, <code>role</code>, <code>goal</code>, and <code>instructions</code>, while assigning the <code>tools</code> defined earlier. This setup equips your agent with a clear purpose and the ability to interact dynamically with its environment.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">Agent</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span>
 
 <span class="n">AIAgent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span>
     <span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;Stevie&quot;</span><span class="p">,</span>

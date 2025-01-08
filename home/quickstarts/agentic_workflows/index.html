@@ -1181,12 +1181,12 @@ services/                  # Directory for agent services
 │   ├── app.py             # Dapr Enabled FastAPI app for Hobbit
 </code></pre></div>
 <p>Create the <code>app.py</code> script and provide the following information.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentService</span>
-<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">logging</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="c1"># Define Agent</span>
         <span class="n">hobbit_agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span>
@@ -1232,12 +1232,12 @@ services/                  # Directory for agent services
 <li><strong>LLM-based</strong>: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.</li>
 </ul>
 <p>Next, we’ll define a <code>RoundRobin Agentic Workflow Service</code> to demonstrate how this concept can be implemented.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">RoundRobinWorkflowService</span>
-<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
-<span class="kn">import</span> <span class="nn">asyncio</span>
-<span class="kn">import</span> <span class="nn">logging</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">RoundRobinWorkflowService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
-<span class="k">async</span> <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">roundrobin_workflow_service</span> <span class="o">=</span> <span class="n">RoundRobinWorkflowService</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Orchestrator&quot;</span><span class="p">,</span>
@@ -1409,7 +1409,7 @@ OPENAI_BASE_URL=&quot;https://api.openai.com/v1&quot;
 <ul>
 <li>Load Environment Variables: Ensure your service script uses Python-dotenv to load these variables automatically:</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
 <span class="n">load_dotenv</span><span class="p">()</span>  <span class="c1"># Load variables from .env</span>
 </code></pre></div>
 <p>With these updates, the workflow will use the <code>LLM</code> to intelligently decide which agent to activate.</p>

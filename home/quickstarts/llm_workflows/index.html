@@ -952,9 +952,9 @@
 <p>Make sure you have your environment variables set up in an <code>.env</code> file so that the library can pick it up and use it to communicate with <code>OpenAI</code> services. We set them up in the <a href="../llm/">LLM Inference Client</a> section</p>
 </div>
 <p>Start by initializing the <code>WorkflowRuntime</code> and gathering the right environment variables.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">dapr.ext.workflow</span> <span class="k">as</span> <span class="nn">wf</span>
-<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
-<span class="kn">from</span> <span class="nn">openai</span> <span class="kn">import</span> <span class="n">OpenAI</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">dapr.ext.workflow</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">wf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">openai</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAI</span>
 
 <span class="c1"># Load environment variables</span>
 <span class="n">load_dotenv</span><span class="p">()</span>
@@ -965,14 +965,14 @@
 <p>Next, let's define a workflow and activities, demonstrating how each step integrates with the OpenAI Python SDK to achieve this functionality.</p>
 <div class="language-python highlight"><pre><span></span><code><span class="c1"># Define Workflow logic</span>
 <span class="nd">@wfr</span><span class="o">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;lotr_workflow&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">wf</span><span class="o">.</span><span class="n">DaprWorkflowContext</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">wf</span><span class="o">.</span><span class="n">DaprWorkflowContext</span><span class="p">):</span>
     <span class="n">result1</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">get_character</span><span class="p">)</span>
     <span class="n">result2</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">get_line</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">result2</span>
 
 <span class="c1"># Activity 1</span>
 <span class="nd">@wfr</span><span class="o">.</span><span class="n">activity</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;step1&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">get_character</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_character</span><span class="p">(</span><span class="n">ctx</span><span class="p">):</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
@@ -989,7 +989,7 @@
 
 <span class="c1"># Activity 2</span>
 <span class="nd">@wfr</span><span class="o">.</span><span class="n">activity</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;step2&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">get_line</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_line</span><span class="p">(</span><span class="n">ctx</span><span class="p">,</span> <span class="n">character</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
     <span class="n">client</span> <span class="o">=</span> <span class="n">OpenAI</span><span class="p">()</span>
     <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">chat</span><span class="o">.</span><span class="n">completions</span><span class="o">.</span><span class="n">create</span><span class="p">(</span>
         <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
@@ -1005,7 +1005,7 @@
     <span class="k">return</span> <span class="n">line</span>
 </code></pre></div>
 <p>Finally, we complete the process by triggering the workflow and handling the output, including waiting for the workflow to finish before processing the results.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">time</span> <span class="kn">import</span> <span class="n">sleep</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">time</span><span class="w"> </span><span class="kn">import</span> <span class="n">sleep</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">wfr</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -1029,9 +1029,9 @@
 <h2 id="floki-llm-based-tasks">Floki LLM-based Tasks<a class="headerlink" href="#floki-llm-based-tasks" title="Permanent link">&para;</a></h2>
 <p>Now, let’s get to the exciting part! <code>Tasks</code> in <code>Floki</code> build on the concept of <code>activities</code> and bring additional flexibility. Using Python function signatures, you can define tasks with ease. The <code>task decorator</code> allows you to provide a <code>description</code> parameter, which acts as a prompt for the default LLM inference client in <code>Floki</code> (<code>OpenAIChatClient</code> by default).</p>
 <p>You can also use function arguments to pass variables to the prompt, letting you dynamically format the prompt before it’s sent to the text generation endpoint. This makes it simple to implement workflows that follow the <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-patterns/#task-chaining">Dapr Task chaining pattern</a>, just like in the earlier example, but with even more flexibility.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">WorkflowApp</span>
-<span class="kn">from</span> <span class="nn">floki.types</span> <span class="kn">import</span> <span class="n">DaprWorkflowContext</span>
-<span class="kn">from</span> <span class="nn">dotenv</span> <span class="kn">import</span> <span class="n">load_dotenv</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkflowApp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">floki.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DaprWorkflowContext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
 
 <span class="c1"># Load environment variables</span>
 <span class="n">load_dotenv</span><span class="p">()</span>
@@ -1041,7 +1041,7 @@
 
 <span class="c1"># Define Workflow logic</span>
 <span class="nd">@wfapp</span><span class="o">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;lotr_workflow&#39;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">DaprWorkflowContext</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">DaprWorkflowContext</span><span class="p">):</span>
     <span class="n">result1</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">get_character</span><span class="p">)</span>
     <span class="n">result2</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">get_line</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;character&quot;</span><span class="p">:</span> <span class="n">result1</span><span class="p">})</span>
     <span class="k">return</span> <span class="n">result2</span>
@@ -1050,11 +1050,11 @@
 <span class="s2">    Pick a random character from The Lord of the Rings</span><span class="se">\n</span>
 <span class="s2">    and respond with the character&#39;s name only</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
-<span class="k">def</span> <span class="nf">get_character</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_character</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">pass</span>
 
 <span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;What is a famous line by </span><span class="si">{character}</span><span class="s2">&quot;</span><span class="p">,)</span>
-<span class="k">def</span> <span class="nf">get_line</span><span class="p">(</span><span class="n">character</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_line</span><span class="p">(</span><span class="n">character</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">pass</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>

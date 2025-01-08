@@ -973,7 +973,7 @@ load_dotenv()  # take environment variables from .env.
 </code></pre></div>
 <h2 id="basic-example">Basic Example<a class="headerlink" href="#basic-example" title="Permanent link">&para;</a></h2>
 <p>By default, you can easily initialize the <code>OpenAIChatClient</code> without additional configuration. It uses the <code>OpenAI API</code> key from your environment variables.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">OpenAIChatClient</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAIChatClient</span>
 
 <span class="n">llm</span> <span class="o">=</span> <span class="n">OpenAIChatClient</span><span class="p">()</span>
 
@@ -984,20 +984,20 @@ load_dotenv()  # take environment variables from .env.
 </code></pre></div>
 <h2 id="structured-output">Structured Output<a class="headerlink" href="#structured-output" title="Permanent link">&para;</a></h2>
 <p>Onge again, initialize <code>OpenAIChatClient</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki</span> <span class="kn">import</span> <span class="n">OpenAIChatClient</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAIChatClient</span>
 
 <span class="n">llmClient</span> <span class="o">=</span> <span class="n">OpenAIChatClient</span><span class="p">()</span>
 </code></pre></div>
 <p>Define the response structure. You can use <a href="https://docs.pydantic.dev/latest/">pydantic</a> models.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">BaseModel</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
 
-<span class="k">class</span> <span class="nc">dog</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">dog</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
     <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">breed</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span>
 </code></pre></div>
 <p>Finally, you can pass the response model to the LLM Client call.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki.types</span> <span class="kn">import</span> <span class="n">UserMessage</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">UserMessage</span>
 
 <span class="n">response</span> <span class="o">=</span> <span class="n">llmClient</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
     <span class="n">messages</span><span class="o">=</span><span class="p">[</span><span class="n">UserMessage</span><span class="p">(</span><span class="s2">&quot;One famous dog in history.&quot;</span><span class="p">)],</span>

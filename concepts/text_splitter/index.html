@@ -1140,7 +1140,7 @@
 <li>Use Case: Simple and effective for text splitting without dependency on external tokenization tools.</li>
 </ul>
 <p>Example:</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki.document.splitter.text</span> <span class="kn">import</span> <span class="n">TextSplitter</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki.document.splitter.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">TextSplitter</span>
 
 <span class="c1"># Character-based splitter (default)</span>
 <span class="n">splitter</span> <span class="o">=</span> <span class="n">TextSplitter</span><span class="p">(</span><span class="n">chunk_size</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span> <span class="n">chunk_overlap</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
@@ -1151,12 +1151,12 @@
 <li>Use Case: Ensures compatibility with models like GPT, where token limits are critical.</li>
 </ul>
 <p><strong>Example</strong>:</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">tiktoken</span>
-<span class="kn">from</span> <span class="nn">floki.document.splitter.text</span> <span class="kn">import</span> <span class="n">TextSplitter</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">tiktoken</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">floki.document.splitter.text</span><span class="w"> </span><span class="kn">import</span> <span class="n">TextSplitter</span>
 
 <span class="n">enc</span> <span class="o">=</span> <span class="n">tiktoken</span><span class="o">.</span><span class="n">get_encoding</span><span class="p">(</span><span class="s2">&quot;cl100k_base&quot;</span><span class="p">)</span>
 
-<span class="k">def</span> <span class="nf">length_function</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">length_function</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
     <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">text</span><span class="p">))</span>
 
 <span class="n">splitter</span> <span class="o">=</span> <span class="n">TextSplitter</span><span class="p">(</span>
@@ -1176,8 +1176,8 @@
 <h2 id="how-to-use-the-text-splitter">How to Use the Text Splitter<a class="headerlink" href="#how-to-use-the-text-splitter" title="Permanent link">&para;</a></h2>
 <p>Here’s a practical example of using the Text Splitter to process a PDF document:</p>
 <h2 id="step-1-load-a-pdf">Step 1: Load a PDF<a class="headerlink" href="#step-1-load-a-pdf" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span> <span class="nn">requests</span>
-<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">requests</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="c1"># Download PDF</span>
 <span class="n">pdf_url</span> <span class="o">=</span> <span class="s2">&quot;https://arxiv.org/pdf/2412.05265.pdf&quot;</span>
@@ -1198,7 +1198,7 @@
 <div class="language-python highlight"><pre><span></span><code><span class="n">pip</span> <span class="n">install</span> <span class="n">pypdf</span>
 </code></pre></div>
 <p>Then, initialize the reader to load the PDF file.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span> <span class="nn">floki.document.reader.pdf.pypdf</span> <span class="kn">import</span> <span class="n">PyPDFReader</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki.document.reader.pdf.pypdf</span><span class="w"> </span><span class="kn">import</span> <span class="n">PyPDFReader</span>
 
 <span class="n">reader</span> <span class="o">=</span> <span class="n">PyPDFReader</span><span class="p">()</span>
 <span class="n">documents</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">local_pdf_path</span><span class="p">)</span>
