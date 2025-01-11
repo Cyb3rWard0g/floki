@@ -125,7 +125,7 @@ def to_function_call_definition(name: str, description: str, args_schema: BaseMo
     Raises:
         FunCallBuilderError: If an unsupported format type is specified.
     """
-    if format_type.lower() == 'openai':
+    if format_type.lower() in ('openai', 'nvidia'):
         return to_openai_function_call_definition(name, description, args_schema, use_deprecated)
     elif format_type.lower() == 'claude':
         if use_deprecated:
@@ -152,7 +152,7 @@ def validate_and_format_tool(tool: Dict[str, Any], tool_format: str = 'openai', 
         ValidationError: If the tool doesn't pass validation.
     """
     try:
-        if tool_format in ['openai', 'azure_openai']:
+        if tool_format in ['openai', 'azure_openai', 'nvidia']:
             validated_tool = OAIFunctionDefinition(**tool) if use_deprecated else OAIToolDefinition(**tool)
         elif tool_format == 'claude':
             validated_tool = ClaudeToolDefinition(**tool)
