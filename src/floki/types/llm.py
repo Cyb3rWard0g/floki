@@ -4,6 +4,19 @@ from pydantic_core import PydanticUseDefault
 from pathlib import Path
 from io import BytesIO, BufferedReader
 
+from pydantic import BaseModel, Field
+
+class NVIDIAClientConfig(BaseModel):
+    base_url: Optional[str] = Field("https://integrate.api.nvidia.com/v1", description="Base URL for the NVIDIA API")
+    api_key: Optional[str] = Field(None, description="API key to authenticate the NVIDIA API")
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def none_to_default(cls, v):
+        if v is None:
+            raise PydanticUseDefault()
+        return v
+
 class HFInferenceClientConfig(BaseModel):
     model: Optional[str] = Field(None, description="Model ID on Hugging Face Hub or URL to a deployed Inference Endpoint. Defaults to a recommended model if not provided.")
     api_key: Optional[Union[str, bool]] = Field(None, description="Hugging Face API key for authentication. Defaults to the locally saved token. Pass False to skip token.")
@@ -60,7 +73,11 @@ class AzureOpenAIModelConfig(AzureOpenAIClientConfig):
 
 class HFHubModelConfig(HFInferenceClientConfig):
     type: Literal["huggingface"] = Field("huggingface", description="Type of the model, must always be 'huggingface'")
-    name: str = Field(default=None, description="Name of the OpenAI model")
+    name: str = Field(default=None, description="Name of the model available through Hugging Face")
+
+class NVIDIAModelConfig(NVIDIAClientConfig):
+    type: Literal["nvidia"] = Field("nvidia", description="Type of the model, must always be 'nvidia'")
+    name: str = Field(default=None, description="Name of the model available through NVIDIA")
 
 class OpenAIParamsBase(BaseModel):
     """
@@ -150,10 +167,28 @@ class HFHubChatCompletionParams(BaseModel):
             raise PydanticUseDefault()
         return v
 
+class NVIDIAChatCompletionParams(OpenAIParamsBase):
+    """
+    Specific settings for the Chat Completion endpoint.
+    """
+    logit_bias: Optional[Dict[Union[str, int], float]] = Field(None, description="Modify likelihood of specified tokens")
+    logprobs: Optional[bool] = Field(False, description="Whether to return log probabilities")
+    top_logprobs: Optional[int] = Field(None, ge=0, le=20, description="Number of top log probabilities to return")
+    n: Optional[int] = Field(1, ge=1, le=128, description="Number of chat completion choices to generate")
+    tools: Optional[List[Dict[str, Any]]] = Field(None, max_length=64, description="List of tools the model may call")
+    tool_choice: Optional[Union[str, Dict[str, Any]]] = Field(None, description="Controls which tool is called")
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def none_to_default(cls, v):
+        if v is None:
+            raise PydanticUseDefault()
+        return v
+
 class PromptyModelConfig(BaseModel):
     api: Literal["chat", "completion"] = Field("chat", description="The API to use, either 'chat' or 'completion'")
-    configuration: Union[OpenAIModelConfig, AzureOpenAIModelConfig, HFHubModelConfig] = Field(..., description="Model configuration settings")
-    parameters: Union[OpenAITextCompletionParams, OpenAIChatCompletionParams, HFHubChatCompletionParams] = Field(..., description="Parameters for the model request")
+    configuration: Union[OpenAIModelConfig, AzureOpenAIModelConfig, HFHubModelConfig, NVIDIAModelConfig] = Field(..., description="Model configuration settings")
+    parameters: Union[OpenAITextCompletionParams, OpenAIChatCompletionParams, HFHubChatCompletionParams, NVIDIAChatCompletionParams] = Field(..., description="Parameters for the model request")
     response: Literal["first", "full"] = Field("first", description="Determines if full response or just the first one is returned")
 
     @field_validator("*", mode="before")
@@ -179,6 +214,8 @@ class PromptyModelConfig(BaseModel):
                 configuration = AzureOpenAIModelConfig(**configuration)
             elif configuration.get("type") == "huggingface":
                 configuration = HFHubModelConfig(**configuration)
+            elif configuration.get("type") == "nvidia":
+                configuration = NVIDIAModelConfig(**configuration)
 
         # Ensure 'parameters' is properly validated as a model, not a dict
         if isinstance(parameters, dict):
@@ -188,6 +225,8 @@ class PromptyModelConfig(BaseModel):
                 parameters = OpenAIChatCompletionParams(**parameters)
             elif configuration and isinstance(configuration, HFHubModelConfig):
                 parameters = HFHubChatCompletionParams(**parameters)
+            elif configuration and isinstance(configuration, NVIDIAModelConfig):
+                parameters = NVIDIAChatCompletionParams(**parameters)
 
         if configuration and parameters:
             # Check if 'name' or 'azure_deployment' is explicitly set

@@ -6,3 +6,5 @@ from .openai.audio import OpenAIAudioClient
 from .openai.embeddings import OpenAIEmbeddingClient
 from .huggingface.client import HFHubInferenceClientBase
 from .huggingface.chat import HFHubChatClient
+from .nvidia.client import NVIDIAClientBase
+from .nvidia.chat import NVIDIAChatClient

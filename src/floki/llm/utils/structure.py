@@ -120,24 +120,50 @@ class StructureHandler:
 
         Args:
             response (Any): The API response data to extract.
-            llm_provider: The LLM provider to use (e.g., 'openai').
+            llm_provider (str): The LLM provider to use (e.g., 'openai', 'nvidia').
 
         Returns:
             str: The extracted JSON string.
 
         Raises:
-            StructureError: If extraction fails.
+            StructureError: If the structured response is not found or extraction fails.
         """
         try:
-            if llm_provider == "openai":
-                extracted_response = response.choices[0].message.tool_calls[0].function.arguments
-                logger.debug(f"Extracted structured response: {extracted_response}")
-                return extracted_response
+            if llm_provider in ("openai", "nvidia"):
+                # Ensure 'choices' exist and are valid
+                choices = getattr(response, "choices", None)
+                if not choices or not isinstance(choices, list):
+                    raise StructureError("Response does not contain valid 'choices'.")
+
+                # Check the finish_reason of the first choice
+                finish_reason = getattr(choices[0], "finish_reason", None)
+                if finish_reason != 'tool_calls':
+                    raise StructureError(
+                        f"Response finish_reason is '{finish_reason}', not 'tool_calls'. "
+                        "Structured response is not available."
+                    )
+
+                # Extract the message
+                message = getattr(choices[0], "message", None)
+                if not message:
+                    raise StructureError("Response message is missing.")
+
+                # Extract tool calls
+                tool_calls = getattr(message, "tool_calls", None)
+                if tool_calls:
+                    function = getattr(tool_calls[0], "function", None)
+                    if function and hasattr(function, "arguments"):
+                        extracted_response = function.arguments
+                        logger.debug(f"Extracted structured response (tool_calls): {extracted_response}")
+                        return extracted_response
+
+                # If no tool calls exist, raise an error
+                raise StructureError("Response does not contain 'tool_calls' required for structured response.")
             else:
                 raise StructureError(f"Unsupported LLM provider: {llm_provider}")
-        except KeyError as e:
-            logger.error(f"Key error while extracting structured response: {e}")
-            raise StructureError(f"Extraction failed for structured response: {e}")
+        except Exception as e:
+            logger.error(f"Error while extracting structured response: {e}")
+            raise StructureError(f"Extraction failed: {e}")
 
     @staticmethod
     def validate_response(response: Union[str, dict], model: Type[T]) -> T:
