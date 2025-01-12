@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="floki-ai",
-    version="0.8.1",
+    version="0.9.1",
     author="Roberto Rodriguez",
     description="Agentic Workflows Made Simple",
     long_description=long_description,
@@ -20,9 +20,9 @@ setup(
     package_dir={'': 'src'},
     packages=find_packages(where="src"),
     install_requires=[
-        "pydantic==2.10.2",
-        "openai==1.56.1",
-        "openapi-pydantic==0.5.0",
+        "pydantic==2.10.5",
+        "openai==1.59.6",
+        "openapi-pydantic==0.5.1",
         "openapi-schema-pydantic==1.2.4",
         "regex>=2023.12.25",
         "neo4j==5.26.0",

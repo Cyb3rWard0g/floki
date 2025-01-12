@@ -134,15 +134,7 @@ class StructureHandler:
                 choices = getattr(response, "choices", None)
                 if not choices or not isinstance(choices, list):
                     raise StructureError("Response does not contain valid 'choices'.")
-
-                # Check the finish_reason of the first choice
-                finish_reason = getattr(choices[0], "finish_reason", None)
-                if finish_reason != 'tool_calls':
-                    raise StructureError(
-                        f"Response finish_reason is '{finish_reason}', not 'tool_calls'. "
-                        "Structured response is not available."
-                    )
-
+                
                 # Extract the message
                 message = getattr(choices[0], "message", None)
                 if not message:
