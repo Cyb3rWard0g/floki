@@ -1482,25 +1482,6 @@ files = [
 typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
-name = "neo4j"
-version = "5.26.0"
-description = "Neo4j Bolt driver for Python"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "neo4j-5.26.0-py3-none-any.whl", hash = "sha256:511a6a9468ca89b521bf686f885a2070acc462b1d09821d43710bd477acdf11e"},
-    {file = "neo4j-5.26.0.tar.gz", hash = "sha256:51b25ba127b7b9fdae1ddf48ae697ddfab331e60f4b6d8488d1fc1f74ec60dcc"},
-]
-
-[package.dependencies]
-pytz = "*"
-
-[package.extras]
-numpy = ["numpy (>=1.7.0,<2.0.0)"]
-pandas = ["numpy (>=1.7.0,<2.0.0)", "pandas (>=1.1.0,<3.0.0)"]
-pyarrow = ["pyarrow (>=1.0.0)"]
-
-[[package]]
 name = "nest-asyncio"
 version = "1.6.0"
 description = "Patch asyncio to allow nested event loops"
@@ -1995,17 +1976,6 @@ files = [
 
 [package.dependencies]
 six = ">=1.5"
-
-[[package]]
-name = "pytz"
-version = "2024.2"
-description = "World timezone definitions, modern and historical"
-optional = false
-python-versions = "*"
-files = [
-    {file = "pytz-2024.2-py2.py3-none-any.whl", hash = "sha256:31c7c1817eb7fae7ca4b8c7ee50c72f93aa2dd863de768e1ef4245d426aa0725"},
-    {file = "pytz-2024.2.tar.gz", hash = "sha256:2aa355083c50a0f93fa581709deac0c9ad65cca8a9e9beac660adcbd493c798a"},
-]
 
 [[package]]
 name = "pywin32"
@@ -2569,4 +2539,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "6ad2484e9eb6919d437ccdcf6aef9b2ea49815d244ae1e1b5740ae556168a67f"
+content-hash = "a383e7b76c4007de6bcdd187712a611ba1ee9de0fe5f3d938496b47e404216d9"
