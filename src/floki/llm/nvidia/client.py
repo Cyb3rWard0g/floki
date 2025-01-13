@@ -1,7 +1,7 @@
 from floki.types.llm import NVIDIAClientConfig
 from floki.llm.base import LLMClientBase
-from typing import Any, Optional, Dict
-from pydantic import Field, model_validator
+from typing import Any, Optional
+from pydantic import Field
 from openai import OpenAI
 import os
 import logging
