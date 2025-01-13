@@ -6,6 +6,20 @@ from io import BytesIO, BufferedReader
 
 from pydantic import BaseModel, Field
 
+class ElevenLabsClientConfig(BaseModel):
+    base_url: Literal[
+        "https://api.elevenlabs.io",
+        "https://api.us.elevenlabs.io"
+        ] = Field(default="https://api.elevenlabs.io",description="Base URL for the ElevenLabs API. Defaults to the production environment.")
+    api_key: Optional[str] = Field(None, description="API key to authenticate with the ElevenLabs API.")
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def none_to_default(cls, v):
+        if v is None:
+            raise PydanticUseDefault()
+        return v
+
 class NVIDIAClientConfig(BaseModel):
     base_url: Optional[str] = Field("https://integrate.api.nvidia.com/v1", description="Base URL for the NVIDIA API")
     api_key: Optional[str] = Field(None, description="API key to authenticate the NVIDIA API")
