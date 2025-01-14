@@ -1,12 +1,11 @@
-import logging
 from floki.storage.graphstores import GraphStoreBase
 from floki.storage.graphstores.neo4j.client import Neo4jClient
 from floki.storage.graphstores.neo4j.utils import value_sanitize, get_current_time
 from floki.types import Node, Relationship
-from neo4j import Query
-from neo4j.exceptions import Neo4jError, CypherSyntaxError
-from pydantic import Field
-from typing import Any, Dict, Optional, List
+from pydantic import BaseModel, ValidationError, Field
+from typing import Any, Dict, Optional, List, Literal
+from collections import defaultdict
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -30,15 +29,41 @@ class Neo4jGraphStore(GraphStoreBase):
         """
         Post-initialization to set up the Neo4j client after model instantiation.
         """
-        self.client = Neo4jClient(self.uri, self.user, self.password, self.database)
+        self.client = Neo4jClient(uri=self.uri, user=self.user, password=self.password, database=self.database)
         logger.info(f"Neo4jGraphStore initialized with database {self.database}")
 
         # Complete post-initialization
         super().model_post_init(__context)
 
+    def batch_execute(self, query: str, data: List[Dict[str, Any]], batch_size: int = 1000) -> None:
+        """
+        Execute a Cypher query in batches.
+
+        Args:
+            query (str): The Cypher query to execute.
+            data (List[Dict[str, Any]]): The data to pass to the query.
+            batch_size (int): The size of each batch. Defaults to 1000.
+
+        Raises:
+            ValueError: If there is an issue with the query execution.
+        """
+        from neo4j.exceptions import Neo4jError
+
+        total_batches = (len(data) + batch_size - 1) // batch_size
+        for i in range(0, len(data), batch_size):
+            batch = data[i:i + batch_size]
+            try:
+                with self.client.driver.session(database=self.client.database) as session:
+                    # Pass the correct parameter name
+                    session.run(query, {"data": batch})
+                    logger.info("Processed batch %d/%d", i // batch_size + 1, total_batches)
+            except Neo4jError as e:
+                logger.error("Batch execution failed: %s", str(e))
+                raise ValueError(f"Batch execution failed: {str(e)}")
+    
     def add_node(self, node: Node) -> None:
         """
-        Add a node to the Neo4j database with specified label and properties.
+        Add a single node to the Neo4j database.
 
         Args:
             node (Node): The node to add.
@@ -46,75 +71,67 @@ class Neo4jGraphStore(GraphStoreBase):
         Raises:
             ValueError: If there is an issue with the query execution.
         """
-        query = f"""MERGE (n: {node.label} {{id: {node.id}}})
-        ON CREATE SET n.createdAt = $current_time
-        SET n.updatedAt = $current_time, n += apoc.map.clean($props, [], [])
-        WITH n
-        CALL apoc.create.addLabels(n, $additional_labels)
-        YIELD node
-        """
-        if node.embedding is not None:
-            query += """
-            WITH node, $embedding AS embedding
-            CALL db.create.setNodeVectorProperty(node, 'embedding', embedding)
-            YIELD node
-            """
-        query += "RETURN node"
+        # Encapsulate single node in a list and call `add_nodes`
+        self.add_nodes([node])
 
-        params = {
-            'props': node.properties,
-            'additional_labels': node.additional_labels,
-            'embedding': node.embedding,
-            'current_time': get_current_time()
-        }
-        try:
-            with self.client.driver.session(database=self.client.database) as session:
-                session.run(query, params)
-                logger.info("Node with label %s and properties %s added or updated successfully", node.label, node.properties)
-        except Neo4jError as e:
-            logger.error("Failed to add or update node: %s", str(e))
-            raise ValueError(f"Failed to add or update node: {str(e)}")
-
-    def add_nodes(self, nodes: List[Node]) -> None:
+    def add_nodes(self, nodes: List[Node], batch_size: int = 1000) -> None:
         """
-        Add multiple nodes to the Neo4j database with specified label and properties.
+        Add multiple nodes to the Neo4j database in batches, supporting different labels.
+        Handles cases where vector support is not available.
 
         Args:
             nodes (List[Node]): A list of nodes to add.
+            batch_size (int): The size of each batch. Defaults to 1000.
 
         Raises:
             ValueError: If there is an issue with the query execution.
         """
-        query = """
-        UNWIND $nodes AS node
-        MERGE (n:{node.label} {id: node.id})
-        ON CREATE SET n.createdAt = $current_time
-        SET n.updatedAt = $current_time, n += apoc.map.clean(node.properties, [], [])
-        WITH n, node.additional_labels AS additional_labels, node.embedding AS embedding
-        CALL apoc.create.addLabels(n, additional_labels)
-        YIELD node
-        WITH node, embedding
-        WHERE embedding IS NOT NULL
-        CALL db.create.setNodeVectorProperty(node, 'embedding', embedding)
-        YIELD node
-        RETURN node
-        """
-        
-        params = {
-            'nodes': [n.model_dump() for n in nodes],
-            'current_time': get_current_time()
-        }
-        try:
-            with self.client.driver.session(database=self.client.database) as session:
-                session.run(query, params)
-                logger.info("Nodes added or updated successfully")
-        except Neo4jError as e:
-            logger.error("Failed to add or update nodes: %s", str(e))
-            raise ValueError(f"Failed to add or update nodes: {str(e)}")
+
+        # Group nodes by their labels
+        nodes_by_label = defaultdict(list)
+        for node in nodes:
+            nodes_by_label[node.label].append(node)
+
+        for label, grouped_nodes in nodes_by_label.items():
+            query = f"""
+            UNWIND $data AS node
+            MERGE (n:`{label}` {{id: node.id}})
+            ON CREATE SET n.createdAt = node.current_time
+            SET n.updatedAt = node.current_time, n += apoc.map.clean(node.properties, [], [])
+            WITH n, node.additional_labels AS additional_labels, node.embedding AS embedding
+            CALL apoc.create.addLabels(n, additional_labels)
+            YIELD node AS labeled_node
+            WITH labeled_node AS n, embedding
+            CALL apoc.do.when(
+                embedding IS NOT NULL,
+                'CALL db.create.setNodeVectorProperty(n, "embedding", $embedding) YIELD node RETURN node',
+                'RETURN n',
+                {{n: n, embedding: embedding}}
+            ) YIELD value AS final_node
+            RETURN final_node
+            """
+
+            # Prepare data for batch processing
+            current_time = get_current_time()
+            data = [
+                {
+                    **n.model_dump(),
+                    "current_time": current_time
+                }
+                for n in grouped_nodes
+            ]
+
+            # Execute in batches for the current label
+            try:
+                self.batch_execute(query, data, batch_size)
+                logger.info(f"Nodes with label `{label}` added successfully.")
+            except ValueError as e:
+                logger.error(f"Failed to add nodes with label `{label}`: {str(e)}")
+                raise
     
     def add_relationship(self, relationship: Relationship) -> None:
         """
-        Create a relationship between two nodes in the Neo4j database.
+        Create a single relationship between two nodes in the Neo4j database.
 
         Args:
             relationship (Relationship): The relationship to create.
@@ -122,65 +139,70 @@ class Neo4jGraphStore(GraphStoreBase):
         Raises:
             ValueError: If there is an issue with the query execution.
         """
-        query = f"""
-        MATCH (a {{id: $source_node_id}}), (b {{id: $target_node_id}})
-        MERGE (a)-[r:{relationship.type}]->(b)
-        ON CREATE SET r.createdAt = $current_time
-        SET r.updatedAt = $current_time, r += $properties
-        RETURN r
+        # Encapsulate the single relationship in a list and delegate
+        self.add_relationships([relationship])
+
+
+    def add_relationships(self, relationships: List[Relationship], batch_size: int = 1000) -> None:
         """
-        params = {
-            'source_node_id': relationship.source_node_id,
-            'target_node_id': relationship.target_node_id,
-            'properties': relationship.properties or {},
-            'current_time': get_current_time()
-        }
-        try:
-            with self.client.driver.session(database=self.client.database) as session:
-                session.run(query, params)
-                logger.info("Relationship with label %s between %s and %s created or updated successfully", relationship.type, relationship.source_node_id, relationship.target_node_id)
-        except Neo4jError as e:
-            logger.error("Failed to create or update relationship: %s", str(e))
-            raise ValueError(f"Failed to create or update relationship: {str(e)}")
-    
-    def add_relationships(self, relationships: List[Relationship]) -> None:
-        """
-        Create multiple relationships between nodes in the Neo4j database.
+        Create multiple relationships between nodes in the Neo4j database in batches.
 
         Args:
             relationships (List[Relationship]): A list of relationships to create.
+            batch_size (int): The size of each batch. Defaults to 1000.
 
         Raises:
             ValueError: If there is an issue with the query execution.
         """
-        query = """
-        UNWIND $relationships AS rel
-        MATCH (a {id: rel.source_node_id}), (b {id: rel.target_node_id})
-        MERGE (a)-[r:{rel.label}]->(b)
-        ON CREATE SET r.createdAt = $current_time
-        SET r.updatedAt = $current_time, r += rel.properties
-        RETURN r
+        # Group relationships by their types
+        relationships_by_type = defaultdict(list)
+        for relationship in relationships:
+            relationships_by_type[relationship.type].append(relationship)
+
+        # Process each relationship type separately
+        for rel_type, rel_group in relationships_by_type.items():
+            query = f"""
+            UNWIND $data AS rel
+            MATCH (a {{id: rel.source_node_id}}), (b {{id: rel.target_node_id}})
+            MERGE (a)-[r:`{rel_type}`]->(b)
+            ON CREATE SET r.createdAt = rel.current_time
+            SET r.updatedAt = rel.current_time, r += rel.properties
+            RETURN r
+            """
+
+            # Prepare data for batch processing
+            current_time = get_current_time()
+            data = [
+                {
+                    **rel.model_dump(),
+                    "current_time": current_time
+                }
+                for rel in rel_group
+            ]
+
+            # Execute in batches for the current relationship type
+            try:
+                self.batch_execute(query, data, batch_size)
+                logger.info(f"Relationships of type `{rel_type}` added successfully.")
+            except ValueError as e:
+                logger.error(f"Failed to add relationships of type `{rel_type}`: {str(e)}")
+                raise
+
+    def query(
+        self,
+        query: str,
+        params: Optional[Dict[str, Any]] = None,
+        sanitize: Optional[bool] = None,
+        pagination_limit: Optional[int] = None,
+    ) -> List[Dict[str, Any]]:
         """
-        params = {
-            'relationships': [r.model_dump() for r in relationships],
-            'current_time': get_current_time()
-        }
-        try:
-            with self.client.driver.session(database=self.client.database) as session:
-                session.run(query, params)
-                logger.info("Relationships created or updated successfully")
-        except Neo4jError as e:
-            logger.error("Failed to create or update relationships: %s", str(e))
-            raise ValueError(f"Failed to create or update relationships: {str(e)}")
-    
-    def query(self, query: str, params: Dict[str, Any] = None, sanitize: bool = None) -> List[Dict[str, Any]]:
-        """
-        Execute a Cypher query against a Neo4j database and optionally sanitize the results.
+        Execute a Cypher query against the Neo4j database and optionally sanitize or paginate the results.
 
         Args:
             query (str): The Cypher query to execute.
-            params (Dict[str, Any]): Optional dictionary of parameters for the query.
-            sanitize (bool): Whether to sanitize the results.
+            params (Dict[str, Any], optional): Parameters for the query. Defaults to None.
+            sanitize (bool, optional): Whether to sanitize the results. Defaults to class-level setting.
+            pagination_limit (int, optional): Limit the number of results for pagination. Defaults to None.
 
         Returns:
             List[Dict[str, Any]]: A list of dictionaries representing the query results.
@@ -188,26 +210,43 @@ class Neo4jGraphStore(GraphStoreBase):
         Raises:
             ValueError: If there is a syntax error in the Cypher query.
             Neo4jError: If any other Neo4j-related error occurs.
-        
-        References:
-            `https://github.com/langchain-ai/langchain/blob/master/libs/community/langchain_community/graphs/neo4j_graph.py`_
         """
+        from neo4j import Query
+        from neo4j.exceptions import Neo4jError, CypherSyntaxError
+        import time
+
         params = params or {}
         sanitize = sanitize if sanitize is not None else self.sanitize
+        start_time = time.time()
+
         try:
             with self.client.driver.session(database=self.client.database) as session:
+                # Add pagination support if a limit is provided
+                if pagination_limit:
+                    query = f"{query} LIMIT {pagination_limit}"
+
                 result = session.run(Query(text=query, timeout=self.timeout), parameters=params)
                 json_data = [record.data() for record in result]
+
+                # Optional sanitization of results
                 if sanitize:
                     json_data = [value_sanitize(el) for el in json_data]
-                logger.info("Query executed successfully: %s", query)
+
+                execution_time = time.time() - start_time
+                logger.info(
+                    "Query executed successfully: %s | Time: %.2f seconds | Results: %d",
+                    query,
+                    execution_time,
+                    len(json_data),
+                )
                 return json_data
+
         except CypherSyntaxError as e:
-            logger.error("Syntax error in the Cypher query: %s", str(e))
-            raise ValueError(f"Syntax error in the Cypher query: {str(e)}")
+            logger.error("Syntax error in Cypher query: %s | Query: %s", str(e), query)
+            raise ValueError(f"Syntax error in Cypher query: {str(e)}")
         except Neo4jError as e:
-            logger.error("An error occurred during the query execution: %s", str(e))
-            raise ValueError(f"An error occurred during the query execution: {str(e)}")
+            logger.error("Neo4j error: %s | Query: %s", str(e), query)
+            raise ValueError(f"Neo4j error: {str(e)}")
     
     def reset(self):
         """
@@ -216,6 +255,8 @@ class Neo4jGraphStore(GraphStoreBase):
         Raises:
             ValueError: If there is an issue with the query execution.
         """
+        from neo4j.exceptions import Neo4jError
+
         try:
             with self.client.driver.session() as session:
                 session.run("CALL apoc.schema.assert({}, {})")
@@ -232,50 +273,65 @@ class Neo4jGraphStore(GraphStoreBase):
         Raises:
             ValueError: If there is an issue with the query execution.
         """
+        from neo4j.exceptions import Neo4jError
+
         try:
-            # Refresh node properties
-            node_properties = self.query(
-                """
-                CALL apoc.meta.data()
-                YIELD label, property, type
-                WHERE type <> 'RELATIONSHIP'
-                RETURN label, collect({property: property, type: type}) AS properties
-                """
-            )
+            # Define queries as constants for reusability
+            NODE_PROPERTIES_QUERY = """
+            CALL apoc.meta.data()
+            YIELD label, property, type
+            WHERE type <> 'RELATIONSHIP'
+            RETURN label, collect({property: property, type: type}) AS properties
+            """
+            RELATIONSHIP_PROPERTIES_QUERY = """
+            CALL apoc.meta.data()
+            YIELD label, property, type
+            WHERE type = 'RELATIONSHIP'
+            RETURN label, collect({property: property, type: type}) AS properties
+            """
+            INDEXES_QUERY = """
+            CALL apoc.schema.nodes() 
+            YIELD label, properties, type, size, valuesSelectivity 
+            WHERE type = 'RANGE' 
+            RETURN *, size * valuesSelectivity AS distinctValues
+            """
 
-            # Refresh relationship properties
-            relationship_properties = self.query(
-                """
-                CALL apoc.meta.data()
-                YIELD label, property, type
-                WHERE type = 'RELATIONSHIP'
-                RETURN label, collect({property: property, type: type}) AS properties
-                """
-            )
+            # Execute queries
+            logger.debug("Refreshing node properties...")
+            node_properties = self.query(NODE_PROPERTIES_QUERY)
 
-            # Refresh constraints
+            logger.debug("Refreshing relationship properties...")
+            relationship_properties = self.query(RELATIONSHIP_PROPERTIES_QUERY)
+
+            logger.debug("Refreshing constraints...")
             constraints = self.query("SHOW CONSTRAINTS")
 
-            # Refresh indexes
-            indexes = self.query(
-                """
-                CALL apoc.schema.nodes() 
-                YIELD label, properties, type, size, valuesSelectivity 
-                WHERE type = 'RANGE' 
-                RETURN *, size * valuesSelectivity as distinctValues
-                """
-            )
+            logger.debug("Refreshing indexes...")
+            indexes = self.query(INDEXES_QUERY)
 
+            # Transform query results into schema dictionary
             self.graph_schema = {
-                "node_props": {record['label']: record['properties'] for record in node_properties},
-                "rel_props": {record['label']: record['properties'] for record in relationship_properties},
-                "constraints": constraints,
-                "indexes": indexes,
+                "node_props": {
+                    record.get("label"): record.get("properties", [])
+                    for record in (node_properties or [])
+                },
+                "rel_props": {
+                    record.get("label"): record.get("properties", [])
+                    for record in (relationship_properties or [])
+                },
+                "constraints": constraints or [],
+                "indexes": indexes or [],
             }
+
             logger.info("Schema refreshed successfully")
+
         except Neo4jError as e:
             logger.error("Failed to refresh schema: %s", str(e))
             raise ValueError(f"Failed to refresh schema: {str(e)}")
+
+        except Exception as e:
+            logger.error("Unexpected error while refreshing schema: %s", str(e))
+            raise ValueError(f"Unexpected error while refreshing schema: {str(e)}")
 
     def get_schema(self, refresh: bool = False) -> Dict[str, Any]:
         """
@@ -290,22 +346,65 @@ class Neo4jGraphStore(GraphStoreBase):
         if not self.graph_schema or refresh:
             self.refresh_schema()
         return self.graph_schema
-    
-    def create_vector_index(self, label: str, property: str, dimensions: int, similarity_function: str = 'cosine'):
+
+    def validate_schema(self, expected_schema: BaseModel) -> bool:
+        """
+        Validate the current graph schema against an expected Pydantic schema model.
+        
+        Args:
+            expected_schema (Type[BaseModel]): The Pydantic schema model to validate against.
+        
+        Returns:
+            bool: True if schema matches, False otherwise.
+        """
+        # Retrieve the current schema
+        current_schema = self.get_schema()
+        
+        try:
+            # Attempt to initialize the expected schema with the current schema
+            validated_schema = expected_schema(**current_schema)
+            logger.info("Schema validation passed: %s", validated_schema)
+            return True
+        except ValidationError as e:
+            # Handle and log validation errors
+            logger.error("Schema validation failed due to validation errors:")
+            for error in e.errors():
+                logger.error(f"Field: {error['loc']}, Error: {error['msg']}")
+            return False
+
+    def create_vector_index(
+        self, 
+        label: str, 
+        property: str, 
+        dimensions: int, 
+        similarity_function: Literal['cosine', 'dot', 'euclidean'] = 'cosine'
+    ) -> None:
         """
         Creates a vector index for a specified label and property in the Neo4j database.
 
         Args:
-            label (str): The label of the nodes to index.
-            property (str): The property of the nodes to index.
+            label (str): The label of the nodes to index (non-empty).
+            property (str): The property of the nodes to index (non-empty).
             dimensions (int): The number of dimensions of the vector.
-            similarity_function (str): The similarity function to use (default is 'cosine').
+            similarity_function (Literal): The similarity function to use ('cosine', 'dot', 'euclidean').
 
         Raises:
-            ValueError: If there is an issue with the query execution.
+            ValueError: If there is an issue with the query execution or invalid arguments.
         """
+        from neo4j.exceptions import Neo4jError
+
+        # Ensure label and property are non-empty strings
+        if not all([label, property]):
+            raise ValueError("Both `label` and `property` must be non-empty strings.")
+        
+        # Ensure dimensions is valid
+        if not isinstance(dimensions, int) or dimensions <= 0:
+            raise ValueError("`dimensions` must be a positive integer.")
+
+        # Construct index name and query
+        index_name = f"{label.lower()}_{property}_vector_index"
         query = f"""
-        CREATE VECTOR INDEX {label.lower()}_embedding_index IF NOT EXISTS
+        CREATE VECTOR INDEX {index_name} IF NOT EXISTS
         FOR (n:{label})
         ON (n.{property})
         OPTIONS {{
@@ -315,10 +414,27 @@ class Neo4jGraphStore(GraphStoreBase):
             }}
         }}
         """
+
         try:
-            with self.client.driver.session() as session:
+            with self.client.driver.session(database=self.database) as session:
                 session.run(query)
-                logger.info("Vector index for %s on property %s created successfully", label, property)
+                logger.info(
+                    "Vector index `%s` for label `%s` on property `%s` created successfully.",
+                    index_name, label, property
+                )
+
+            # Optionally update graph schema
+            if "indexes" in self.graph_schema:
+                self.graph_schema["indexes"].append({
+                    "label": label,
+                    "property": property,
+                    "dimensions": dimensions,
+                    "similarity_function": similarity_function
+                })
+
         except Neo4jError as e:
             logger.error("Failed to create vector index: %s", str(e))
             raise ValueError(f"Failed to create vector index: {str(e)}")
+        except Exception as e:
+            logger.error("Unexpected error during vector index creation: %s", str(e))
+            raise ValueError(f"Unexpected error: {str(e)}")

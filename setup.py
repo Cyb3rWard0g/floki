@@ -5,7 +5,7 @@ with open("README.md", encoding="utf-8") as f:
 
 setup(
     name="floki-ai",
-    version="0.9.1",
+    version="0.10.1",
     author="Roberto Rodriguez",
     description="Agentic Workflows Made Simple",
     long_description=long_description,
@@ -25,7 +25,6 @@ setup(
         "openapi-pydantic==0.5.1",
         "openapi-schema-pydantic==1.2.4",
         "regex>=2023.12.25",
-        "neo4j==5.26.0",
         "Jinja2==3.1.5",
         "azure-identity==1.19.0",
         "dapr==1.14.0",
