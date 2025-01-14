@@ -32,6 +32,7 @@ class ArxivFetcher(FetcherBase):
         to_date: Union[str, datetime, None] = None,
         download: bool = False,
         dirpath: Path = Path("./"),
+        include_summary: bool = False,
         **kwargs
     ) -> Union[List[Dict], List["Document"]]:
         """
@@ -43,6 +44,7 @@ class ArxivFetcher(FetcherBase):
             to_date (Union[str, datetime, None]): End date for the search in 'YYYYMMDD' format or as a datetime object.
             download (bool): Whether to download the papers as PDFs.
             dirpath (Path): Directory path for the downloads (used if download=True).
+            include_summary (bool): Whether to include the paper summary in the returned metadata or documents. Defaults to False.
             **kwargs: Additional search parameters (e.g., sort_by).
 
         Returns:
@@ -85,21 +87,15 @@ class ArxivFetcher(FetcherBase):
         results = list(search.results())
         logger.info(f"Found {len(results)} results for query: {query}")
 
-        if download:
-            metadata_list = []
-            for result in results:
-                file_path = self._download_result(result, dirpath)
-                metadata_list.append(self._format_result_metadata(result, file_path=file_path))
-            return metadata_list
-        else:
-            documents = []
-            for result in results:
-                metadata = self._format_result_metadata(result)
-                text = result.summary.strip()
-                documents.append(Document(text=text, metadata=metadata))
-            return documents
+        return self._process_results(results, download, dirpath, include_summary)
 
-    def search_by_id(self, content_id: str, download: bool = False, dirpath: Path = Path("./")) -> Union[Optional[Dict], Optional[Document]]:
+    def search_by_id(
+        self,
+        content_id: str,
+        download: bool = False,
+        dirpath: Path = Path("./"),
+        include_summary: bool = False
+    ) -> Union[Optional[Dict], Optional[Document]]:
         """
         Search for a specific paper by its arXiv ID and optionally download it.
 
@@ -107,10 +103,19 @@ class ArxivFetcher(FetcherBase):
             content_id (str): The arXiv ID of the paper.
             download (bool): Whether to download the paper.
             dirpath (Path): Directory path for the download (used if download=True).
+            include_summary (bool): Whether to include the paper summary in the returned metadata or document. Defaults to False.
 
         Returns:
             Union[Optional[Dict], Optional[Document]]: Metadata dictionary if `download=True`,
             otherwise a `Document` object.
+
+        Examples:
+            >>> fetcher = ArxivFetcher()
+            >>> fetcher.search_by_id("1234.5678")
+            # Searches for the paper with arXiv ID "1234.5678".
+
+            >>> fetcher.search_by_id("1234.5678", download=True, dirpath=Path("./downloads"))
+            # Searches for the paper with arXiv ID "1234.5678" and downloads it to "./downloads".
         """
         logger.info(f"Searching for paper by ID: {content_id}")
         try:
@@ -120,17 +125,45 @@ class ArxivFetcher(FetcherBase):
                 logger.warning(f"No result found for ID: {content_id}")
                 return None
 
-            if download:
-                file_path = self._download_result(result, dirpath)
-                return self._format_result_metadata(result, file_path=file_path)
-            else:
-                metadata = self._format_result_metadata(result)
-                text = result.summary.strip()
-                return Document(text=text, metadata=metadata)
+            return self._process_results([result], download, dirpath, include_summary)[0]
         except Exception as e:
             logger.error(f"Error fetching result for ID {content_id}: {e}")
             return None
 
+    def _process_results(
+        self,
+        results: List[arxiv.Result],
+        download: bool,
+        dirpath: Path,
+        include_summary: bool
+    ) -> Union[List[Dict], List["Document"]]:
+        """
+        Process arXiv search results.
+
+        Args:
+            results (List[arxiv.Result]): The list of arXiv result objects.
+            download (bool): Whether to download the papers as PDFs.
+            dirpath (Path): Directory path for the downloads (used if download=True).
+            include_summary (bool): Whether to include the paper summary in the returned metadata or documents.
+
+        Returns:
+            Union[List[Dict], List[Document]]: A list of metadata dictionaries if `download=True`,
+            otherwise a list of `Document` objects.
+        """
+        if download:
+            metadata_list = []
+            for result in results:
+                file_path = self._download_result(result, dirpath)
+                metadata_list.append(self._format_result_metadata(result, file_path=file_path, include_summary=include_summary))
+            return metadata_list
+        else:
+            documents = []
+            for result in results:
+                metadata = self._format_result_metadata(result, include_summary=include_summary)
+                text = result.summary.strip()
+                documents.append(Document(text=text, metadata=metadata))
+            return documents
+    
     def _download_result(self, result: arxiv.Result, dirpath: Path) -> Optional[str]:
         """
         Download a paper from an arXiv result object.
@@ -153,13 +186,14 @@ class ArxivFetcher(FetcherBase):
             logger.error(f"Failed to download paper {result.title}: {e}")
             return None
 
-    def _format_result_metadata(self, result: arxiv.Result, file_path: Optional[str] = None) -> Dict:
+    def _format_result_metadata(self, result: arxiv.Result, file_path: Optional[str] = None, include_summary: bool = False) -> Dict:
         """
-        Format metadata from an arXiv result, optionally including file path.
+        Format metadata from an arXiv result, optionally including file path and summary.
 
         Args:
             result (arxiv.Result): The arXiv result object.
             file_path (Optional[str]): Path to the downloaded file.
+            include_summary (bool): Whether to include the summary in the metadata.
 
         Returns:
             Dict: A dictionary containing formatted metadata.
@@ -183,10 +217,11 @@ class ArxivFetcher(FetcherBase):
                 "DOI": result.doi,
                 "journal_reference": result.journal_ref,
             })
-        
-        filtered_metadata = {key: value for key, value in metadata.items() if value is not None}
 
-        return filtered_metadata
+        if include_summary:
+            metadata["summary"] = result.summary.strip()
+        
+        return {key: value for key, value in metadata.items() if value is not None}
     
     def _format_date(self, date: Union[str, datetime]) -> str:
         """
