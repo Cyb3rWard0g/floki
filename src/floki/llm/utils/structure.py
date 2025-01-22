@@ -130,6 +130,8 @@ class StructureHandler:
         """
         try:
             if llm_provider in ("openai", "nvidia"):
+                # Structured response
+                logger.debug(f"Structured response being processed: {response}")
                 # Ensure 'choices' exist and are valid
                 choices = getattr(response, "choices", None)
                 if not choices or not isinstance(choices, list):

@@ -1,18 +1,10 @@
 from floki.document.fetcher.base import FetcherBase
 from floki.types.document import Document
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Any
 from datetime import datetime
 from pathlib import Path
 import re
 import logging
-
-try:
-    import arxiv
-except ImportError:
-    raise ImportError(
-        "The `arxiv` library is required to use the ArxivFetcher. "
-        "Install it with `pip install arxiv`."
-    )
 
 logger = logging.getLogger(__name__)
 
@@ -78,6 +70,14 @@ class ArxivFetcher(FetcherBase):
             date_filter = f"submittedDate:[{from_date_str} TO {to_date_str}]"
             query = f"{query} AND {date_filter}"
 
+        try:
+            import arxiv
+        except ImportError:
+            raise ImportError(
+                "The `arxiv` library is required to use the ArxivFetcher. "
+                "Install it with `pip install arxiv`."
+            )
+        
         search = arxiv.Search(
             query=query,
             max_results=kwargs.get("max_results", self.max_results),
@@ -117,6 +117,14 @@ class ArxivFetcher(FetcherBase):
             >>> fetcher.search_by_id("1234.5678", download=True, dirpath=Path("./downloads"))
             # Searches for the paper with arXiv ID "1234.5678" and downloads it to "./downloads".
         """
+        try:
+            import arxiv
+        except ImportError:
+            raise ImportError(
+                "The `arxiv` library is required to use the ArxivFetcher. "
+                "Install it with `pip install arxiv`."
+            )
+        
         logger.info(f"Searching for paper by ID: {content_id}")
         try:
             search = arxiv.Search(id_list=[content_id])
@@ -132,7 +140,7 @@ class ArxivFetcher(FetcherBase):
 
     def _process_results(
         self,
-        results: List[arxiv.Result],
+        results: List[Any],
         download: bool,
         dirpath: Path,
         include_summary: bool
@@ -141,7 +149,7 @@ class ArxivFetcher(FetcherBase):
         Process arXiv search results.
 
         Args:
-            results (List[arxiv.Result]): The list of arXiv result objects.
+            results (List[Any]): The list of arXiv result objects.
             download (bool): Whether to download the papers as PDFs.
             dirpath (Path): Directory path for the downloads (used if download=True).
             include_summary (bool): Whether to include the paper summary in the returned metadata or documents.
@@ -164,12 +172,12 @@ class ArxivFetcher(FetcherBase):
                 documents.append(Document(text=text, metadata=metadata))
             return documents
     
-    def _download_result(self, result: arxiv.Result, dirpath: Path) -> Optional[str]:
+    def _download_result(self, result: Any, dirpath: Path) -> Optional[str]:
         """
         Download a paper from an arXiv result object.
 
         Args:
-            result (arxiv.Result): The arXiv result object.
+            result (Any): The arXiv result object.
             dirpath (Path): Directory path for the download.
 
         Returns:
@@ -186,12 +194,12 @@ class ArxivFetcher(FetcherBase):
             logger.error(f"Failed to download paper {result.title}: {e}")
             return None
 
-    def _format_result_metadata(self, result: arxiv.Result, file_path: Optional[str] = None, include_summary: bool = False) -> Dict:
+    def _format_result_metadata(self, result: Any, file_path: Optional[str] = None, include_summary: bool = False) -> Dict:
         """
         Format metadata from an arXiv result, optionally including file path and summary.
 
         Args:
-            result (arxiv.Result): The arXiv result object.
+            result (Any): The arXiv result object.
             file_path (Optional[str]): Path to the downloaded file.
             include_summary (bool): Whether to include the summary in the metadata.
 
