@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "floki-ai"
-version = "0.10.1"
+version = "0.10.2"
 description = "Agentic Workflows Made Simple"
 readme = "README.md"
 authors = [{ name = "Roberto Rodriguez" }]
@@ -48,7 +48,7 @@ homepage = "https://github.com/Cyb3rWard0g/floki"
 
 [tool.poetry]
 name = "floki"
-version = "0.10.1"
+version = "0.10.2"
 description = "Agentic Workflows Made Simple"
 authors = ["Roberto Rodriguez"]
 license = "MIT"
