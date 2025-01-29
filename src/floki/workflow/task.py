@@ -203,7 +203,7 @@ class Task(BaseModel):
         if self.signature and self.signature.return_annotation is not inspect.Signature.empty:
             return_annotation = self.signature.return_annotation
             if isinstance(return_annotation, type) and issubclass(return_annotation, BaseModel):
-                llm_params['response_model'] = return_annotation
+                llm_params['response_format'] = return_annotation
 
         # Resolve and call the LLM method
         if isinstance(self.llm_method, str):
