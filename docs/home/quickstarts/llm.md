@@ -67,7 +67,7 @@ from floki.types import UserMessage
 
 response = llmClient.generate(
     messages=[UserMessage("One famous dog in history.")],
-    response_model=dog
+    response_format=dog
 )
 response
 ```
