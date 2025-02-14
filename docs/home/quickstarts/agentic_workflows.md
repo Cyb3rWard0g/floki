@@ -64,6 +64,7 @@ async def main():
             port=8001,
             daprGrpcPort=50001
         )
+        
         await hobbit_service.start()
     except Exception as e:
         print(f"Error starting service: {e}")
@@ -96,21 +97,21 @@ Types of Agentic Workflows:
 * **RoundRobin**: Cycles through agents in a fixed order, ensuring each agent has an equal opportunity to participate in tasks.
 * **LLM-based**: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.
 
-Next, we’ll define a `RoundRobin Agentic Workflow Service` to demonstrate how this concept can be implemented.
+Next, we’ll define a `RoundRobin Orchestrator` to demonstrate how this concept can be implemented.
 
 ```python
-from floki import RoundRobinWorkflowService
+from floki import RoundRobinOrchestrator
 from dotenv import load_dotenv
 import asyncio
 import logging
 
 async def main():
     try:
-        roundrobin_workflow_service = RoundRobinWorkflowService(
+        roundrobin_workflow_service = RoundRobinOrchestrator(
             name="Orchestrator",
             message_bus_name="messagepubsub",
-            agents_state_store_name="agentstatestore",
-            workflow_state_store_name="workflowstatestore",
+            agents_registry_store_name="agentstatestore",
+            state_store_name="agenticworkflowstate",
             port=8004,
             daprGrpcPort=50004,
             max_iterations=2
