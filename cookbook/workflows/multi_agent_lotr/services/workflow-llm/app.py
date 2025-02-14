@@ -1,18 +1,18 @@
-from floki import LLMWorkflowService
+from floki import LLMOrchestrator
 from dotenv import load_dotenv
 import asyncio
 import logging
 
 async def main():
     try:
-        llm_workflow_service = LLMWorkflowService(
+        llm_workflow_service = LLMOrchestrator(
             name="LLM",
             message_bus_name="messagepubsub",
-            agents_state_store_name="agentstatestore",
-            workflow_state_store_name="workflowstatestore",
+            agents_registry_store_name="agentstatestore",
+            state_store_name="agenticworkflowstate",
             port=8004,
             daprGrpcPort=50004,
-            max_iterations=2
+            max_iterations=3
         )
 
         await llm_workflow_service.start()
