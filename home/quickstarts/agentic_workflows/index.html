@@ -1203,6 +1203,7 @@ services/                  # Directory for agent services
             <span class="n">port</span><span class="o">=</span><span class="mi">8001</span><span class="p">,</span>
             <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50001</span>
         <span class="p">)</span>
+
         <span class="k">await</span> <span class="n">hobbit_service</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error starting service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
@@ -1231,19 +1232,19 @@ services/                  # Directory for agent services
 <li><strong>RoundRobin</strong>: Cycles through agents in a fixed order, ensuring each agent has an equal opportunity to participate in tasks.</li>
 <li><strong>LLM-based</strong>: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.</li>
 </ul>
-<p>Next, we’ll define a <code>RoundRobin Agentic Workflow Service</code> to demonstrate how this concept can be implemented.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">RoundRobinWorkflowService</span>
+<p>Next, we’ll define a <code>RoundRobin Orchestrator</code> to demonstrate how this concept can be implemented.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">RoundRobinOrchestrator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">roundrobin_workflow_service</span> <span class="o">=</span> <span class="n">RoundRobinWorkflowService</span><span class="p">(</span>
+        <span class="n">roundrobin_workflow_service</span> <span class="o">=</span> <span class="n">RoundRobinOrchestrator</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Orchestrator&quot;</span><span class="p">,</span>
             <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
-            <span class="n">agents_state_store_name</span><span class="o">=</span><span class="s2">&quot;agentstatestore&quot;</span><span class="p">,</span>
-            <span class="n">workflow_state_store_name</span><span class="o">=</span><span class="s2">&quot;workflowstatestore&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentstatestore&quot;</span><span class="p">,</span>
+            <span class="n">state_store_name</span><span class="o">=</span><span class="s2">&quot;agenticworkflowstate&quot;</span><span class="p">,</span>
             <span class="n">port</span><span class="o">=</span><span class="mi">8004</span><span class="p">,</span>
             <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50004</span><span class="p">,</span>
             <span class="n">max_iterations</span><span class="o">=</span><span class="mi">2</span>
