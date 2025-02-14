@@ -1,14 +1,13 @@
 from dapr.ext.workflow import WorkflowRuntime, WorkflowActivityContext, DaprWorkflowContext, DaprWorkflowClient
 from dapr.ext.workflow.workflow_state import WorkflowState
-from floki.types.workflow import WorkflowStatus, WorkflowStateMap, WorkflowMessage, WorkflowEntry
-from typing import Any, Callable, Generator, Optional, Dict, TypeVar, Union, List
+from floki.types.workflow import WorkflowStatus
+from typing import Any, Callable, Generator, Optional, Dict, TypeVar, Union, List, Type
 from floki.storage.daprstores.statestore import DaprStateStore
 from floki.workflow.task import Task, TaskWrapper
-from pydantic import BaseModel, Field, ValidationError, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, ValidationError
 from dapr.conf import settings as dapr_settings
 from dapr.clients import DaprClient
 from durabletask import task as dtask
-from datetime import datetime
 import asyncio
 import functools
 import logging
@@ -27,29 +26,42 @@ class WorkflowApp(BaseModel):
     """
     A Pydantic-based class to encapsulate a Dapr Workflow runtime and manage workflows and tasks.
 
+    This class provides:
+        - Workflow runtime initialization and management.
+        - Task and workflow registration using decorators.
+        - Workflow state persistence using Dapr state store.
+        - Methods to start, monitor, and interact with workflows.
+
     Attributes:
         daprGrpcHost (Optional[str]): Host address for the Dapr gRPC endpoint.
         daprGrpcPort (Optional[int]): Port number for the Dapr gRPC endpoint.
+        state_store_name (str): The Dapr state store component for persisting workflow state.
+        state_name (str): The key under which workflow state is stored.
+        state (Union[BaseModel, dict]): The current workflow state, which can be a dictionary or Pydantic model.
+        state_format (Optional[Type[BaseModel]]): An optional schema for validating workflow state.
+        timeout (int): Timeout duration (seconds) for workflow tasks.
+        
         wf_runtime (WorkflowRuntime): The Dapr Workflow runtime instance.
-        wf_client (DaprWorkflowClient): The Dapr Workflow client instance for invoking and interacting with workflows.
-        tasks (Dict[str, Callable]): A dictionary storing registered task functions by name.
-        workflows (Dict[str, Callable]): A dictionary storing registered workflows by name.
-        timeout (Optional[int]): Timeout for workflow completion in seconds. Defaults to 300.
+        wf_client (DaprWorkflowClient): The Dapr Workflow client instance for managing workflows.
+        state_store (Optional[DaprStateStore]): Dapr state store instance for workflow state.
+        tasks (Dict[str, Callable]): Internal dictionary of registered task functions.
+        workflows (Dict[str, Callable]): Internal dictionary of registered workflows.
     """
 
     daprGrpcHost: Optional[str] = Field(None, description="Host address for the Dapr gRPC endpoint.")
     daprGrpcPort: Optional[int] = Field(None, description="Port number for the Dapr gRPC endpoint.")
-    workflow_state_store_name: str = Field(default="workflowstatestore", description="The name of the Dapr state store component used to store workflow metadata.")
-    workflow_timeout: int = Field(default=300, description="Default timeout duration in seconds for workflow tasks.")
+    state_store_name: str = Field(default="workflowstatestore", description="The name of the Dapr state store component used to store workflow metadata.")
+    state_name: str = Field(default="workflowstate", description="Dapr state store key for the workflow state.")
+    state: Union[BaseModel, dict] = Field(default_factory=dict, description="The current state of the workflow, which can be a dictionary or a Pydantic object.")
+    state_format: Optional[Type[BaseModel]] = Field(default=None, description="The schema to enforce state structure and validation.")
+    timeout: int = Field(default=300, description="Default timeout duration in seconds for workflow tasks.")
 
     # Initialized in model_post_init
     wf_runtime: Optional[WorkflowRuntime] = Field(default=None, init=False, description="Workflow runtime instance.")
     wf_client: Optional[DaprWorkflowClient] = Field(default=None, init=False, description="Workflow client instance.")
-    wf_state_store: Optional[DaprStateStore] = Field(default=None, init=False, description="Dapr state store instance for accessing and managing workflow state.")
-    wf_state_key: str = Field(default="workflow_state", init=False, description="Dapr state store key for the workflow state.")
-    state: WorkflowStateMap = Field(default=None, init=False, description="Workflow Dapr state.")
-    tasks: Dict[str, Callable] = Field(default_factory=dict, description="Dictionary of registered tasks.")
-    workflows: Dict[str, Callable] = Field(default_factory=dict, description="Dictionary of registered workflows.")
+    state_store: Optional[DaprStateStore] = Field(default=None, init=False, description="Dapr state store instance for accessing and managing workflow state.")
+    tasks: Dict[str, Callable] = Field(default_factory=dict, init=False, description="Dictionary of registered tasks.")
+    workflows: Dict[str, Callable] = Field(default_factory=dict, init=False, description="Dictionary of registered workflows.")
     
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -70,15 +82,132 @@ class WorkflowApp(BaseModel):
         self.wf_client = DaprWorkflowClient(host=self.daprGrpcHost, port=self.daprGrpcPort)
 
         # Initialize Workflow state store
-        self.wf_state_store = DaprStateStore(store_name=self.workflow_state_store_name, address=f"{self.daprGrpcHost}:{self.daprGrpcPort}")
+        self.state_store = DaprStateStore(store_name=self.state_store_name, address=f"{self.daprGrpcHost}:{self.daprGrpcPort}")
 
-        # Register workflow
-        self.register_workflow_metadata()
+        # Load or initialize state
+        self.initialize_state()
 
         logger.info(f"Initialized WorkflowApp with Dapr gRPC host '{self.daprGrpcHost}' and port '{self.daprGrpcPort}'.")
 
         # Proceed with base model setup
         super().model_post_init(__context)
+    
+    def initialize_state(self) -> None:
+        """
+        Initializes the workflow state:
+        - Uses `state` if provided (converting BaseModel to dict if needed).
+        - Loads from storage if `state` is not set.
+        - Defaults to `{}` if no stored state exists.
+        - Always persists the final state.
+        """
+        try:
+            if isinstance(self.state, BaseModel):
+                logger.info("User provided state of type BaseModel.")
+                self.state = self.state.model_dump()
+
+            if not isinstance(self.state, dict):
+                raise TypeError(f"Invalid state type: {type(self.state)}. Expected dict or BaseModel.")
+
+            if not self.state:
+                logger.info("No user-provided state. Loading from storage.")
+                self.state = self.load_state()
+
+            logger.info(f"Workflow state initialized with {len(self.state)} keys.")
+            self.save_state()
+
+        except Exception as e:
+            logger.error(f"Failed to initialize workflow state: {e}")
+            raise RuntimeError(f"Error initializing workflow state: {e}") from e
+    
+    def load_state(self) -> dict:
+        """
+        Loads and validates the workflow state from the Dapr state store.
+
+        Returns:
+            dict: The loaded and validated state.
+
+        Raises:
+            RuntimeError: If loading the state fails.
+            TypeError: If the retrieved state is not a dictionary.
+            ValidationError: If schema validation fails.
+        """
+        try:
+            has_state, state_data = self.state_store.try_get_state(self.state_name)
+
+            if has_state and state_data:
+                logger.info(f"Existing state found for key '{self.state_name}'. Validating it.")
+
+                if not isinstance(state_data, dict):
+                    raise TypeError(f"Invalid state type retrieved: {type(state_data)}. Expected dict.")
+
+                try:
+                    return self.validate_state(state_data) if self.state_format else state_data
+                except ValidationError as e:
+                    logger.error(f"State validation failed: {e}")
+                    return {}
+
+            logger.info(f"No existing state found for key '{self.state_name}'. Initializing empty state.")
+            return {}
+
+        except Exception as e:
+            logger.error(f"Failed to load state for key '{self.state_name}': {e}")
+            raise RuntimeError(f"Error loading workflow state: {e}") from e
+    
+    def validate_state(self, state_data: dict) -> dict:
+        """
+        Validates workflow state against `state_format`.
+
+        Args:
+            state_data (dict): The state data to validate.
+
+        Returns:
+            dict: The validated state.
+
+        Raises:
+            ValidationError: If schema validation fails.
+        """
+        try:
+            logger.info("Validating workflow state against schema.")
+            validated_state: BaseModel = self.state_format(**state_data)
+            return validated_state.model_dump()
+        except ValidationError as e:
+            logger.error(f"State validation failed: {e}")
+            raise ValidationError(f"Invalid workflow state: {e}")
+    
+    def save_state(self, state: Optional[Union[dict, BaseModel, str]] = None) -> None:
+        """
+        Saves the workflow state to the Dapr state store using the predefined workflow state key.
+
+        Args:
+            state (Optional[Union[dict, BaseModel, str]]): The state data to save.
+        """
+        try:
+            # Use provided state or fallback to self.state
+            state_to_save = state or self.state
+            if not state_to_save:
+                logger.warning("Skipping state save: Empty state.")
+                return
+
+            # Convert state to JSON string
+            if isinstance(state_to_save, BaseModel):
+                state_to_save = state_to_save.model_dump_json()  # Convert BaseModel to JSON string
+            elif isinstance(state_to_save, dict):
+                state_to_save = json.dumps(state_to_save)  # Convert dictionary to JSON string
+            elif isinstance(state_to_save, str):
+                # Ensure it's a valid JSON string before storing
+                try:
+                    json.loads(state_to_save)  # Validate that it's a valid JSON string
+                except json.JSONDecodeError as e:
+                    raise ValueError(f"Invalid JSON string provided as state: {e}")
+            else:
+                raise TypeError(f"Invalid state type: {type(state_to_save)}. Expected dict, BaseModel, or JSON string.")
+
+            # Save the state in Dapr (Dapr expects str or bytes)
+            self.state_store.save_state(self.state_name, state_to_save)
+            logger.info(f"Successfully saved state for key '{self.state_name}'.")
+        except Exception as e:
+            logger.error(f"Failed to save state for key '{self.state_name}': {e}")
+            raise
     
     def task(self,func: Optional[Callable] = None, *, name: Optional[str] = None, description: Optional[str] = None, agent: Optional[Any] = None, agent_method: Optional[Union[str, Callable]] = "run", llm: Optional[Any] = None, llm_method: Optional[Union[str, Callable]] = "generate") -> Callable:
         """
@@ -251,71 +380,7 @@ class WorkflowApp(BaseModel):
 
         # Store the wrapped task in your task registry
         self.tasks[name] = wrapped_task
-        return wrapped_task
-    
-    def register_workflow_metadata(self) -> None:
-        """
-        Initializes or loads the workflow metadata from the Dapr state store.
-        """
-        logger.info("Registering Workflow metadata.")
-        
-        # Attempt to retrieve existing state
-        has_state, state_data = self.wf_state_store.try_get_state(self.wf_state_key)
-
-        if not has_state:
-            # No existing state, initialize with default values
-            logger.info("Initializing state for workflow.")
-            self.state = WorkflowStateMap()
-            # Save newly initialized state
-            self.save_state(self.state)
-        else:
-            # Load the existing state
-            logger.info("Loading existing workflow state.")
-            logger.debug(f"Existing state data: {state_data}")
-            try:
-                self.state = WorkflowStateMap(**state_data)
-            except ValidationError as e:
-                # Handle invalid existing state
-                logger.error(f"Failed to validate existing state: {e}")
-                # Reinitialize with default values and save
-                self.state = WorkflowStateMap()
-                self.save_state(self.state)
-    
-    def save_state(self, value: Optional[WorkflowStateMap] = None) -> None:
-        """
-        Saves the workflow state to the Dapr state store using the predefined workflow state key.
-
-        Args:
-            value (Optional[WorkflowStateMap]): The state data to save. If not provided, uses `self.state`.
-        """
-        try:
-            # Use the provided state or fallback to the local state
-            state_to_save = value or self.state
-            if not state_to_save:
-                raise ValueError("No state to save. Both `value` and `self.state` are None.")
-
-            self.wf_state_store.save_state(self.wf_state_key, state_to_save.model_dump_json())
-            logger.info(f"Successfully saved state for key '{self.wf_state_key}'.")
-        except Exception as e:
-            logger.error(f"Failed to save state for key '{self.wf_state_key}': {e}")
-            raise
-    
-    def add_message(self, instance_id: str, message: Dict[str, Any]) -> None:
-        """
-        Adds a message to the workflow entry for the given instance ID.
-
-        Args:
-            instance_id (str): The workflow instance ID.
-            message (Dict[str, Any]): The message to add.
-        """
-        workflow_entry = self.state.instances.get(instance_id)
-        if not workflow_entry:
-            logger.error(f"Workflow with instance ID {instance_id} not found.")
-            return
-
-        workflow_message = WorkflowMessage(**message)
-        workflow_entry.messages.append(workflow_message)
-        self.save_state()
+        return wrapped_task    
     
     def resolve_task(self, task_name: str) -> Callable:
         """
@@ -355,7 +420,7 @@ class WorkflowApp(BaseModel):
 
     def run_workflow(self, workflow: Union[str, Callable], input: Union[str, Dict[str, Any]] = None) -> str:
         """
-        Start a workflow and manage its lifecycle.
+        Start a workflow.
 
         Args:
             workflow (Union[str, Callable]): Workflow name or callable instance.
@@ -370,19 +435,6 @@ class WorkflowApp(BaseModel):
 
             # Generate unique instance ID
             instance_id = str(uuid.uuid4()).replace("-", "")
-
-            # Check for existing workflows
-            if instance_id in self.state.instances:
-                logger.warning(f"Workflow instance {instance_id} already exists.")
-                return
-
-            # Prepare workflow input
-            entry_input = input if isinstance(input, str) else json.dumps(input) if input else ""
-
-            # Initialize workflow entry
-            workflow_entry = WorkflowEntry(input=entry_input, status=WorkflowStatus.RUNNING)
-            self.state.instances[instance_id] = workflow_entry
-            self.save_state()
 
             # Resolve the workflow function
             workflow_func = self.resolve_workflow(workflow) if isinstance(workflow, str) else workflow
@@ -400,51 +452,68 @@ class WorkflowApp(BaseModel):
             logger.error(f"Failed to start workflow {workflow}: {e}")
             raise
     
-    async def monitor_workflow_completion(self, instance_id: str):
+    def get_workflow_state(self, instance_id: str) -> Optional[WorkflowState]:
         """
-        Monitor workflow instance in the background and handle its final state.
+        Retrieves the final state of a workflow instance.
+
+        Args:
+            instance_id (str): The ID of the workflow instance.
+
+        Returns:
+            Optional[WorkflowState]: The final state of the workflow, or None if not found.
         """
         try:
-            logger.info(f"Starting to monitor workflow '{instance_id}'...")
-
-            state: WorkflowState = await asyncio.to_thread(
-                self.wait_for_workflow_completion,
+            state: WorkflowState = self.wait_for_workflow_completion(
                 instance_id,
                 fetch_payloads=True,
-                timeout_in_seconds=self.workflow_timeout,
+                timeout_in_seconds=self.timeout,
             )
 
             if not state:
                 logger.error(f"Workflow '{instance_id}' not found.")
-                self.handle_workflow_output(instance_id, "Workflow not found.", WorkflowStatus.FAILED)
-                return
+                return None
 
-            # Directly map runtime status to WorkflowStatus
-            workflow_status = WorkflowStatus[state.runtime_status.name]
+            return state
+        except TimeoutError:
+            logger.error(f"Workflow '{instance_id}' monitoring timed out.")
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving workflow state for '{instance_id}': {e}")
+            return None
+    
+    async def monitor_workflow_completion(self, instance_id: str):
+        """
+        Monitors the execution of a workflow instance asynchronously and logs its final state.
+
+        Args:
+            instance_id (str): The unique identifier of the workflow instance to monitor.
+
+        This method waits for the workflow to complete, then logs whether it succeeded, failed, or timed out.
+        It does not return a value but provides visibility into the workflow’s execution status.
+        """
+        try:
+            logger.info(f"Starting to monitor workflow '{instance_id}'...")
+
+            # Retrieve workflow state
+            state = await asyncio.to_thread(self.get_workflow_state, instance_id)
+
+            if not state:
+                return  # Error already logged in get_workflow_state
+
+            workflow_status = WorkflowStatus[state.runtime_status.name] if state.runtime_status.name in WorkflowStatus.__members__ else WorkflowStatus.UNKNOWN
 
             if workflow_status == WorkflowStatus.COMPLETED:
                 logger.info(f"Workflow '{instance_id}' completed successfully!")
                 logger.debug(f"Output: {state.serialized_output}")
-                self.handle_workflow_output(instance_id, state.serialized_output, WorkflowStatus.COMPLETED)
             else:
                 logger.error(f"Workflow '{instance_id}' ended with status '{workflow_status.value}'.")
-                self.handle_workflow_output(
-                    instance_id,
-                    f"Workflow ended with status: {workflow_status.value}.",
-                    workflow_status,
-                )
 
-        except TimeoutError:
-            logger.error(f"Workflow '{instance_id}' monitoring timed out.")
-            self.handle_workflow_output(instance_id, "Workflow monitoring timed out.", WorkflowStatus.FAILED)
         except Exception as e:
             logger.error(f"Error monitoring workflow '{instance_id}': {e}")
-            self.handle_workflow_output(instance_id, f"Error monitoring workflow: {e}", WorkflowStatus.FAILED)
         finally:
             logger.info(f"Finished monitoring workflow '{instance_id}'.")
-            self.stop_runtime()
     
-    def run_and_monitor_workflow(self, workflow: Union[str, Callable], input: Optional[Union[str, Dict[str, Any]]] = None) -> WorkflowState:
+    def run_and_monitor_workflow(self, workflow: Union[str, Callable], input: Optional[Union[str, Dict[str, Any]]] = None) -> Optional[str]:
         """
         Run a workflow synchronously and handle its completion.
 
@@ -453,83 +522,35 @@ class WorkflowApp(BaseModel):
             input (Optional[Union[str, Dict[str, Any]]]): The input for the workflow.
 
         Returns:
-            WorkflowState: The final state of the workflow after completion.
+            Optional[str]: The serialized output of the workflow after completion.
         """
         try:
-
             # Schedule the workflow
             instance_id = self.run_workflow(workflow, input=input)
 
-            # Wait for workflow completion
-            state: WorkflowState = self.wait_for_workflow_completion(
-                instance_id,
-                fetch_payloads=True,
-                timeout_in_seconds=self.workflow_timeout,
-            )
+            # Retrieve workflow state
+            state = self.get_workflow_state(instance_id)
 
             if not state:
-                logger.error(f"Workflow '{instance_id}' not found.")
-                self.handle_workflow_output(instance_id, "Workflow not found.", WorkflowStatus.FAILED)
                 raise RuntimeError(f"Workflow '{instance_id}' not found.")
 
-            # Determine workflow status
-            try:
-                workflow_status = WorkflowStatus[state.runtime_status.name]
-            except KeyError:
-                workflow_status = WorkflowStatus.UNKNOWN
-                logger.warning(f"Unrecognized workflow status '{state.runtime_status.name}'. Defaulting to UNKNOWN.")
+            workflow_status = WorkflowStatus[state.runtime_status.name] if state.runtime_status.name in WorkflowStatus.__members__ else WorkflowStatus.UNKNOWN
 
             if workflow_status == WorkflowStatus.COMPLETED:
                 logger.info(f"Workflow '{instance_id}' completed successfully!")
                 logger.debug(f"Output: {state.serialized_output}")
-                self.handle_workflow_output(instance_id, state.serialized_output, WorkflowStatus.COMPLETED)
             else:
                 logger.error(f"Workflow '{instance_id}' ended with status '{workflow_status.value}'.")
-                self.handle_workflow_output(
-                    instance_id,
-                    f"Workflow ended with status: {workflow_status.value}.",
-                    workflow_status,
-                )
 
-            # Return the final state
-            logger.info(f"Returning final output for workflow '{instance_id}'")
-            logger.debug(f"Serialized Output: {state.serialized_output}")
+            # Return the final state output
             return state.serialized_output
 
-        except TimeoutError:
-            logger.error(f"Workflow '{instance_id}' monitoring timed out.")
-            self.handle_workflow_output(instance_id, "Workflow monitoring timed out.", WorkflowStatus.FAILED)
-            raise
         except Exception as e:
             logger.error(f"Error during workflow '{instance_id}': {e}")
-            self.handle_workflow_output(instance_id, f"Error during workflow: {e}", WorkflowStatus.FAILED)
             raise
         finally:
             logger.info(f"Finished workflow with Instance ID: {instance_id}.")
             self.stop_runtime()
-    
-    def handle_workflow_output(self, instance_id: str, output: Any, status: WorkflowStatus):
-        """
-        Handle the output of a completed workflow.
-        """
-        try:
-            # Check if workflow exists
-            workflow_entry = self.state.instances.get(instance_id)
-            if not workflow_entry:
-                logger.error(f"Workflow with instance ID {instance_id} not found.")
-                return
-            
-            # Update workflow entry
-            workflow_entry.output = output
-            workflow_entry.status = status
-            workflow_entry.end_time = datetime.now()
-
-            # Persist the updated state
-            self.save_state()
-
-            logger.info(f"Workflow '{instance_id}' output persisted successfully.")
-        except Exception as e:
-            logger.error(f"Failed to persist workflow output for '{instance_id}': {e}")
     
     def terminate_workflow(self, instance_id: str, *, output: Optional[Any] = None) -> None:
         """

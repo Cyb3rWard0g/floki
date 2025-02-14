@@ -3,38 +3,50 @@ from floki.agent.utils.text_printer import ColorTextFormatter
 from floki.workflow.service import WorkflowAppService
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Type
 import logging
 
 logger = logging.getLogger(__name__)
 
 class AgenticWorkflowService(WorkflowAppService):
     """
-    Abstract base class for agentic workflows, providing a template for common workflow operations.
+    A service class for managing agentic workflows, extending `WorkflowAppService`.
+    Handles agent interactions, workflow execution, and metadata management.
     """
-    broadcast_topic_name: Optional[str] = Field("beacon_channel", description="The default topic used for broadcasting messages to all agents.")
-    task_results_topic_name: Optional[str] = Field("task_results_channel", description="The default topic used for sending the results of a task executed by an agent.")
-    agents_state_store_name: str = Field(..., description="The name of the Dapr state store component used to store and share agent metadata centrally.")
-    max_iterations: int = Field(default=10,description="Maximum number of iterations for workflows. Must be greater than 0.", ge=1)
 
-    # Fields initialized later
-    agent_metadata_store: Optional[DaprStateStore] = Field(default=None, init=False, description="Dapr state store instance for accessing and managing centralized agent metadata.")
-    formatter: Optional[ColorTextFormatter] = Field(default=None, init=False, description="Formatter for text output.")
+    # Messaging Topics
+    broadcast_topic_name: Optional[str] = Field("beacon_channel", description="Default topic for broadcasting messages to all agents.")
+    task_results_topic_name: Optional[str] = Field("task_results_channel", description="Default topic for sending task results from agents.")
+
+    # Agent Metadata Store (Centralized Agent Registry)
+    agents_registry_store_name: str = Field(..., description="Dapr state store component for centralized agent metadata.")
+
+    # Agentic Workflow State Parameters
+    state_store_name: str = Field(default="agenticworkflowstate", description="Dapr state store for agentic workflow state.")
+    state_name: str = Field(default="agentic_workflow_state", description="Dapr state store key for agentic workflow state.")
+
+    # Max Iterations for Workflows
+    max_iterations: int = Field(default=10, description="Maximum number of iterations for workflows. Must be greater than 0.", ge=1)
+
+    # Fields Initialized during class initialization
+    agents_registry_store: Optional[DaprStateStore] = Field(default=None, init=False, description="Dapr state store for managing centralized agent metadata.")
+    formatter: Optional[ColorTextFormatter] = Field(default=None, init=False, description="Formatter for colored text output.")
     current_speaker: Optional[str] = Field(default=None, init=False, description="Current speaker in the conversation.")
 
     def model_post_init(self, __context: Any) -> None:
         """
-        Configure workflows and initialize AgentService and WorkflowApp.
+        Configure agentic workflows, set state parameters, and initialize metadata store.
         """
+        # Initialize WorkflowAppService (parent class)
         super().model_post_init(__context)
 
-        # Initialize the Dapr state store for agent metadata
-        self.agent_metadata_store = DaprStateStore(store_name=self.agents_state_store_name, address=self.daprGrpcAddress)
+        # Initialize Agent Metadata Store
+        self.agents_registry_store = DaprStateStore(store_name=self.agents_registry_store_name, address=self.daprGrpcAddress)
 
-        # Initialize the text formatter
+        # Initialize Text Formatter
         self.formatter = ColorTextFormatter()
 
-        # Subscribe to tasks results topic
+        # Subscribe to Task Results Topic
         self.dapr_app.subscribe(pubsub=self.message_bus_name, topic=self.task_results_topic_name)(self.raise_workflow_event_from_request)
         logger.info(f"{self.name} subscribed to topic {self.task_results_topic_name} on {self.message_bus_name}")
     
@@ -44,7 +56,7 @@ class AgenticWorkflowService(WorkflowAppService):
         """
         key = "agents_metadata"
         try:
-            agents_metadata = await self.get_metadata_from_store(self.agent_metadata_store, key) or {}
+            agents_metadata = await self.get_metadata_from_store(self.agents_registry_store, key) or {}
             return agents_metadata
         except Exception as e:
             logger.error(f"Failed to retrieve agents metadata: {e}")
