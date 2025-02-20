@@ -249,7 +249,6 @@ class StructureHandler:
         """
         try:
             if isinstance(response, str) and StructureHandler.is_json_string(response):
-                # If it's a valid JSON string, use model_validate_json
                 return model.model_validate_json(response)
             elif isinstance(response, dict):
                 # If it's a dictionary, use model_validate
@@ -306,43 +305,85 @@ class StructureHandler:
     @staticmethod
     def enforce_strict_json_schema(schema: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Enforce strict JSON schema constraints by recursively processing the schema.
+        Enforces strict JSON schema constraints while making it OpenAI-compatible.
 
         - Expands all local $refs by resolving them from the $defs section.
         - Ensures "additionalProperties": false for object schemas.
-        - Processes complex constructs like "allOf" and "anyOf" recursively.
+        - Removes default values and replaces optional fields with `anyOf: [{"type": T}, {"type": "null"}]`.
+        - Converts optional arrays to `anyOf: [{"type": "array", "items": T}, {"type": "null"}]`.
+        - Ensures all `array` schemas define `items`.
+        - Prevents the use of `anyOf` at the root level of an array.
 
         Args:
             schema (Dict[str, Any]): The JSON schema dictionary to process.
 
         Returns:
             Dict[str, Any]: The updated schema with strict constraints applied.
-
-        Raises:
-            ValueError: If an unexpected or unsupported $ref format is encountered.
-            TypeError: If constructs like "anyOf" or "allOf" are not lists as expected.
         """
         # Expand all $refs (resolves and removes them)
         schema = StructureHandler.expand_local_refs(schema, schema)
 
-        # For objects: Disallow additional properties and enforce strictness on properties
+        # Ensure "additionalProperties": false for all objects
         if schema.get("type") == "object":
             schema.setdefault("additionalProperties", False)
+
+            required_fields = set(schema.get("required", []))
+
             for key, value in schema.get("properties", {}).items():
                 schema["properties"][key] = StructureHandler.enforce_strict_json_schema(value)
-        
-        # For arrays: Process the "items" schema
-        if schema.get("type") == "array" and "items" in schema:
+
+                # Remove default values (not allowed by OpenAI)
+                schema["properties"][key].pop("default", None)
+
+                # Convert optional fields to `anyOf: [{"type": T}, {"type": "null"}]`
+                if key not in required_fields:
+                    field_type = schema["properties"][key].get("type")
+                    if field_type and not isinstance(field_type, list):  # Ensure it's not already `anyOf`
+                        schema["properties"][key]["anyOf"] = [{"type": field_type}, {"type": "null"}]
+                        schema["properties"][key].pop("type", None)  # Remove direct "type" field
+
+                    # Ensure field is included in "required" (even if it allows null)
+                    required_fields.add(key)
+
+                # Handle optional arrays inside object properties
+                if schema["properties"][key].get("anyOf") and isinstance(schema["properties"][key]["anyOf"], list):
+                    for subschema in schema["properties"][key]["anyOf"]:
+                        if subschema.get("type") == "array":
+                            schema["properties"][key] = {
+                                "anyOf": [
+                                    {"type": "array", "items": subschema.get("items", {})},
+                                    {"type": "null"}
+                                ]
+                            }
+
+            # Ensure all required fields are explicitly listed
+            schema["required"] = list(required_fields)
+
+        # Process arrays and enforce strictness
+        if schema.get("type") == "array":
+            # Ensure `items` is always present in arrays
+            if "items" not in schema:
+                raise ValueError(f"Array schema missing 'items': {schema}")
+
             schema["items"] = StructureHandler.enforce_strict_json_schema(schema["items"])
 
-        # For $defs: Ensure all $defs are processed and strictly enforced
+            # Convert optional arrays from `anyOf` to `anyOf: [{"type": "array", "items": T}, {"type": "null"}]`
+            if "anyOf" in schema and isinstance(schema["anyOf"], list):
+                if any(subschema.get("type") == "array" for subschema in schema["anyOf"]):
+                    schema["anyOf"] = [
+                        {"type": "array", "items": schema["items"]},
+                        {"type": "null"}
+                    ]
+                    schema.pop("type", None)  # Remove direct "type" field
+                    schema.pop("minItems", None)  # Remove `minItems`, not needed with null
+
+        # Process $defs and remove after expansion
         if "$defs" in schema:
             for def_name, def_schema in schema["$defs"].items():
                 schema["$defs"][def_name] = StructureHandler.enforce_strict_json_schema(def_schema)
-            # Remove $defs after processing
             schema.pop("$defs", None)
 
-        # Process anyOf and allOf schemas
+        # Process anyOf and allOf schemas recursively
         for key in ("anyOf", "allOf"):
             if key in schema and isinstance(schema[key], list):
                 schema[key] = [StructureHandler.enforce_strict_json_schema(subschema) for subschema in schema[key]]
