@@ -56,12 +56,12 @@ class StructureHandler:
             ValueError: If an unsupported `structured_mode` is provided.
             TypeError: If `response_format` is invalid for the selected mode.
         """
-        logger.info(f"Structured response mode: {structured_mode}")
+        logger.debug(f"Structured response mode: {structured_mode}")
 
         # Handle iterable models in both modes
         is_iterable = isinstance(response_format, Iterable) and not isinstance(response_format, (dict, str))
         if is_iterable:
-            logger.info("Detected an iterable response format.")
+            logger.debug("Detected an iterable response format.")
             item_model = get_args(response_format)[0]
             response_format = StructureHandler.create_iterable_model(item_model)
 
@@ -312,6 +312,7 @@ class StructureHandler:
         - Removes default values and replaces optional fields with `anyOf: [{"type": T}, {"type": "null"}]`.
         - Converts optional arrays to `anyOf: [{"type": "array", "items": T}, {"type": "null"}]`.
         - Ensures all `array` schemas define `items`.
+        - Converts optional integers and floats to `anyOf: [{"type": T}, {"type": "null"}]`.
         - Prevents the use of `anyOf` at the root level of an array.
 
         Args:
@@ -335,12 +336,14 @@ class StructureHandler:
                 # Remove default values (not allowed by OpenAI)
                 schema["properties"][key].pop("default", None)
 
-                # Convert optional fields to `anyOf: [{"type": T}, {"type": "null"}]`
+                # Convert optional fields (string, number, integer) to `anyOf`
                 if key not in required_fields:
                     field_type = schema["properties"][key].get("type")
+
                     if field_type and not isinstance(field_type, list):  # Ensure it's not already `anyOf`
-                        schema["properties"][key]["anyOf"] = [{"type": field_type}, {"type": "null"}]
-                        schema["properties"][key].pop("type", None)  # Remove direct "type" field
+                        if field_type in ["string", "integer", "number"]:
+                            schema["properties"][key]["anyOf"] = [{"type": field_type}, {"type": "null"}]
+                            schema["properties"][key].pop("type", None)  # Remove direct "type" field
 
                     # Ensure field is included in "required" (even if it allows null)
                     required_fields.add(key)
