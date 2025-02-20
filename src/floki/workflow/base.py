@@ -462,7 +462,7 @@ class WorkflowApp(BaseModel):
             logger.error(f"Failed to start workflow {workflow}: {e}")
             raise
     
-    def get_workflow_state(self, instance_id: str) -> Optional[WorkflowState]:
+    async def monitor_workflow_state(self, instance_id: str) -> Optional[WorkflowState]:
         """
         Retrieves the final state of a workflow instance.
 
@@ -473,7 +473,8 @@ class WorkflowApp(BaseModel):
             Optional[WorkflowState]: The final state of the workflow, or None if not found.
         """
         try:
-            state: WorkflowState = self.wait_for_workflow_completion(
+            state: WorkflowState = await asyncio.to_thread(
+                self.wait_for_workflow_completion,
                 instance_id,
                 fetch_payloads=True,
                 timeout_in_seconds=self.timeout,
@@ -502,13 +503,13 @@ class WorkflowApp(BaseModel):
         It does not return a value but provides visibility into the workflow’s execution status.
         """
         try:
-            logger.info(f"Starting to monitor workflow '{instance_id}'...")
+            logger.info(f"Monitoring workflow '{instance_id}'...")
 
             # Retrieve workflow state
-            state = await asyncio.to_thread(self.get_workflow_state, instance_id)
+            state = await self.monitor_workflow_state(instance_id)
 
             if not state:
-                return  # Error already logged in get_workflow_state
+                return  # Error already logged in gmonitor_workflow_state
 
             workflow_status = WorkflowStatus[state.runtime_status.name] if state.runtime_status.name in WorkflowStatus.__members__ else WorkflowStatus.UNKNOWN
 
@@ -539,7 +540,11 @@ class WorkflowApp(BaseModel):
             instance_id = self.run_workflow(workflow, input=input)
 
             # Retrieve workflow state
-            state = self.get_workflow_state(instance_id)
+            loop = asyncio.get_running_loop()
+            if loop:
+                state = loop.run_until_complete(self.monitor_workflow_state(instance_id))
+            else:
+                state = asyncio.run(self.monitor_workflow_state(instance_id))
 
             if not state:
                 raise RuntimeError(f"Workflow '{instance_id}' not found.")
