@@ -5,6 +5,7 @@ from floki.llm.utils import StructureHandler
 from floki.llm.base import LLMClientBase
 from floki.llm.openai import OpenAIChatClient
 from dapr.ext.workflow import WorkflowActivityContext
+from collections.abc import Iterable
 from functools import update_wrapper
 from types import SimpleNamespace
 from dataclasses import is_dataclass
@@ -28,6 +29,8 @@ class Task(BaseModel):
     agent_method: Union[str, Callable] = Field("run", description="The method or callable for invoking the agent.")
     llm: Optional[LLMClientBase] = Field(default_factory=OpenAIChatClient, description="The LLM client for executing the task, if applicable.")
     llm_method: Union[str, Callable] = Field("generate", description="The method or callable for invoking the LLM client.")
+    include_chat_history: Optional[bool] = Field(False, description="Whether to include past conversation history in the LLM call.")
+    workflow_app: Optional[Any] = Field(None, description="Reference to the WorkflowApp instance.")
 
     # Initialized during setup
     signature: Optional[inspect.Signature] = Field(None, init=False, description="The signature of the provided function.")
@@ -53,6 +56,13 @@ class Task(BaseModel):
         """
         Executes the task and validates its output.
         Ensures all coroutines are awaited before returning.
+
+        Args:
+            ctx (WorkflowActivityContext): The workflow execution context.
+            input (Any): The task input.
+
+        Returns:
+            Any: The result of the task.
         """
         input = self._normalize_input(input) if input is not None else {}
 
@@ -176,36 +186,53 @@ class Task(BaseModel):
 
         logger.debug(f"Agent result type: {type(result)}, value: {result}")
         return self._convert_result(result)
-
+    
     async def _run_llm(self, description: Union[str, List[BaseMessage]]) -> Any:
         """
         Execute the task using the provided LLM.
 
         Args:
             description (Union[str, List[BaseMessage]]): The description to pass to the LLM.
-
+        
         Returns:
             Any: The result of the LLM execution.
-
+        
         Raises:
             AttributeError: If the LLM method does not exist.
             ValueError: If the LLM method is not callable.
         """
         logger.info("Running task with LLM...")
 
-        # Ensure description is a list of UserMessages
+        # Retrieve dynamic conversation history if enabled
+        conversation_history = []
+        if self.include_chat_history and self.workflow_app is not None:
+            logger.info("Retrieving conversation history...")
+            conversation_history = getattr(self.workflow_app, "messages", [])
+            logger.debug(f"Conversation history retrieved: {conversation_history}")
+
+        # Convert input description into message format
         if isinstance(description, str):
-            description = [UserMessage(description)]
-
-        llm_params = {'messages': description}
-
-        # Add response model if the signature specifies it
+            description = [UserMessage(description)]  # Convert to structured message format
+        
+        # Combine conversation history with the new task description
+        llm_messages = conversation_history + description
+        llm_params = {'messages': llm_messages}
+        
+        # Add response model if specified in the function signature
         if self.signature and self.signature.return_annotation is not inspect.Signature.empty:
             return_annotation = self.signature.return_annotation
+
+            # Case 1: Return type is a single Pydantic model
             if isinstance(return_annotation, type) and issubclass(return_annotation, BaseModel):
                 llm_params['response_format'] = return_annotation
 
-        # Resolve and call the LLM method
+            # Case 2: Return type is a List[BaseModel] → Convert to Iterable[BaseModel]
+            elif get_origin(return_annotation) is list:
+                list_type = get_args(return_annotation)[0]  # Extract the Pydantic model type
+                if isinstance(list_type, type) and issubclass(list_type, BaseModel):
+                    llm_params['response_format'] = Iterable[list_type]
+
+        # Resolve the LLM method
         if isinstance(self.llm_method, str):
             llm_callable = getattr(self.llm, self.llm_method, None)
             if not llm_callable:
@@ -298,13 +325,15 @@ class Task(BaseModel):
                         raise TypeError(f"Validation failed for type {expected_type}: {e}")
 
                 # Handle lists of Pydantic models
-                if origin:
-                    args = get_args(expected_type)
-                    if origin is list and len(args) == 1 and issubclass(args[0], BaseModel):
-                        if not all(isinstance(item, args[0]) for item in result):
-                            raise TypeError(f"Expected all items in the list to be of type {args[0]}, but got {type(result)}")
-                        return [StructureHandler.validate_response(item, args[0]) for item in result]
+                if origin is list:
+                    model_type = get_args(expected_type)[0]
+                    if issubclass(model_type, BaseModel):
+                        if not isinstance(result, list):
+                            raise TypeError(f"Expected a list of {model_type}, but got {type(result)}.")
 
+                        # Validate all items
+                        return [StructureHandler.validate_response(item, model_type).model_dump() for item in result]
+                
         # If no specific validation applies, return the result as-is
         return result
     
@@ -323,18 +352,18 @@ class Task(BaseModel):
         """
         if self.signature:
             expected_type = self.signature.return_annotation
-
+            
             if expected_type and expected_type is not inspect.Signature.empty:
-                # Use TypeAdapter for validation
                 try:
                     adapter = TypeAdapter(expected_type)
                     validated_result = adapter.validate_python(result)
                     return validated_result
                 except ValidationError as e:
-                    raise TypeError(f"Validation failed for type {expected_type}: {e}")
+                    error_message = f"Output validation failed for expected type {expected_type}. Received: {result}. Error: {e}"
+                    logger.error(error_message)
+                    raise TypeError(error_message)
 
-        # If no specific validation applies, return the result as-is
-        return result
+        return result  # If no validation applies, return result as-is
 
 class TaskWrapper:
     """
