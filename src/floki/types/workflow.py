@@ -1,9 +1,55 @@
 from dapr.ext.workflow import DaprWorkflowContext
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Literal
 from enum import Enum
 from datetime import datetime
 import uuid
+
+class NextStep(BaseModel):
+    """
+    Represents the next step in a workflow, including a status verdict, 
+    the next agent to respond, an instruction message for that agent, the step and substep ids if applicable.
+    """
+    verdict: Literal["continue", "completed", "failed"] = Field(..., description="Task status: 'continue' (in progress), 'completed' (done), or 'failed' (unresolved issue).")
+    next_agent: Optional[str] = Field(None, description="The name of the agent selected to respond next.")
+    instruction: Optional[str] = Field(None, description="A direct message instructing the agent on their next action.")
+    step: Optional[int] = Field(None, description="The step number the agent will be working on.")
+    substep: Optional[float] = Field(None, description="The substep number (if applicable) the agent will be working on.")
+
+class TaskResult(BaseModel):
+    """
+    Represents the result of an agent's task execution.
+    """
+    agent: str = Field(..., description="The agent who executed the task.")
+    step: int = Field(..., description="The step number associated with the task.")
+    substep: Optional[float] = Field(None, description="The substep number (if applicable).")
+    result: str = Field(..., description="The response or outcome of the task execution.")
+    timestamp: datetime = Field(default_factory=datetime.now, description="Timestamp of when the result was recorded.")
+
+class PlanStatusUpdate(BaseModel):
+    step: int = Field(..., description="Step identifier (integer).")
+    substep: Optional[float] = Field(None, description="Substep identifier (float, e.g., 1.1, 2.3). Set to None if updating a step.")
+    status: Literal["not_started", "in_progress", "blocked", "completed"] = Field(..., description="Updated status for the step or sub-step.")
+
+class SubStep(BaseModel):
+    substep: float = Field(..., description="Substep identifier (float, e.g., 1.1, 2.3).")
+    description: str = Field(..., description="Detailed action to be performed.")
+    status: Literal["not_started", "in_progress", "blocked", "completed"] = Field(..., description="Current state of the sub-step.")
+
+class PlanStep(BaseModel):
+    step: int = Field(..., description="Step identifier (integer).")
+    description: str = Field(..., description="Detailed action to be performed.")
+    status: Literal["not_started", "in_progress", "blocked", "completed"] = Field(..., description="Current state of the step.")
+    substeps: Optional[List[SubStep]] = Field(None, description="Optional list of sub-steps.")
+
+class ProgressCheckOutput(BaseModel):
+    plan_needs_update: bool = Field(..., description="Indicates whether the plan requires updates (true/false).")
+    plan_status_update: Optional[List[PlanStatusUpdate]] = Field(None, description="List of status updates for steps or sub-steps. Each entry must contain `step`, optional `substep`, and `status`.")
+    plan_restructure: Optional[List[PlanStep]] = Field(None, description="A list of restructured steps. Only one step should be modified at a time.")
+
+class TaskPlan(BaseModel):
+    """Encapsulates the structured execution plan."""
+    plan: List[PlanStep] = Field(..., description="Structured execution plan.")
 
 class WorkflowStatus(str, Enum):
     """Enumeration of possible workflow statuses for standardized tracking."""
@@ -31,6 +77,8 @@ class LLMWorkflowEntry(BaseModel):
     end_time: Optional[datetime] = Field(None, description="Timestamp when the workflow was completed or failed")
     messages: List[LLMWorkflowMessage] = Field(default_factory=list, description="Messages exchanged during the workflow")
     last_message: Optional[LLMWorkflowMessage] = Field(default=None, description="Last processed message in the workflow")
+    plan: Optional[List[PlanStep]] = Field(None, description="Structured execution plan for the workflow.")
+    task_history: List[TaskResult] = Field(default_factory=list, description="A history of task executions and their results.")
 
 class LLMWorkflowState(BaseModel):
     """Represents the state of multiple LLM workflows."""
