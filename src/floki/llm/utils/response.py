@@ -60,10 +60,10 @@ class ResponseHandler:
                 if isinstance(structured_response_instance, response_format):
                     logger.info("Structured output was successfully validated.")
                     if is_iterable:
-                        logger.info(f"Returning objects from an instance of {type(structured_response_instance)}.")
+                        logger.debug(f"Returning objects from an instance of {type(structured_response_instance)}.")
                         return structured_response_instance.objects
                     else:
-                        logger.info(f"Returning an instance of {type(structured_response_instance)}.")
+                        logger.debug(f"Returning an instance of {type(structured_response_instance)}.")
                         return structured_response_instance
                 else:
                     logger.error("Validation failed for structured response.")

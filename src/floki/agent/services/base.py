@@ -261,7 +261,7 @@ class AgentServiceBase(DaprEnabledService):
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            logger.info(f"{self.agent.name} preparing to publish task results.")
+            logger.debug(f"{self.agent.name} preparing to publish task results.")
 
             await self.publish_event_message(
                 topic_name=self.task_results_topic_name,
@@ -270,6 +270,8 @@ class AgentServiceBase(DaprEnabledService):
                 message=message,
                 **kwargs,
             )
+
+            logger.info(f"{self.agent.name} published task results.")
         except Exception as e:
             logger.error(f"Failed to publish task result: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error publishing task result: {str(e)}")

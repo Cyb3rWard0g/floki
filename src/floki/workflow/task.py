@@ -70,12 +70,11 @@ class Task(BaseModel):
             if self.agent or self.llm:
                 # Task requires LLM/Agent
                 description = self.description or (self.func.__doc__ if self.func else None)
-                logger.info(f"Executing task with LLM/agent")
                 result = await self._run_task(self.format_description(description, input))
                 result = await self._validate_output_llm(result)
             elif self.func:
                 # Task is a Python function
-                logger.info(f"Executing Regular Task")
+                logger.info(f"Invoking Regular Task")
                 if asyncio.iscoroutinefunction(self.func):
                     # Await async function
                     result = await self.func(**input)
@@ -171,7 +170,7 @@ class Task(BaseModel):
         Returns:
             Any: The result of the agent execution.
         """
-        logger.info("Running task with agent...")
+        logger.info("Invoking Task with AI Agent...")
         if isinstance(self.agent_method, str):
             agent_callable = getattr(self.agent, self.agent_method, None)
             if not agent_callable:
@@ -201,7 +200,7 @@ class Task(BaseModel):
             AttributeError: If the LLM method does not exist.
             ValueError: If the LLM method is not callable.
         """
-        logger.info("Running task with LLM...")
+        logger.info("Invoking Task with LLM...")
 
         # Retrieve dynamic conversation history if enabled
         conversation_history = []
@@ -259,15 +258,15 @@ class Task(BaseModel):
             Any: The converted result.
         """
         if isinstance(result, ChatCompletion):
-            logger.info("Extracted message content from ChatCompletion.")
+            logger.debug("Extracted message content from ChatCompletion.")
             return result.get_content()
 
         if isinstance(result, BaseModel):
-            logger.info("Converting Pydantic model to dictionary.")
+            logger.debug("Converting Pydantic model to dictionary.")
             return result.model_dump()
 
         if isinstance(result, list) and all(isinstance(item, BaseModel) for item in result):
-            logger.info("Converting list of Pydantic models to list of dictionaries.")
+            logger.debug("Converting list of Pydantic models to list of dictionaries.")
             return [item.model_dump() for item in result]
 
         # If no specific conversion is necessary, return as-is
