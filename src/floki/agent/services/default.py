@@ -69,7 +69,7 @@ class AgentService(AgentServiceBase):
                 return Response(status_code=status.HTTP_204_NO_CONTENT)
 
             # Log and process the valid broadcast message
-            logger.info(f"{self.agent.name} is processing broadcast message of type '{metadata.type}' from '{metadata.source}'.")
+            logger.debug(f"{self.agent.name} is processing broadcast message of type '{metadata.type}' from '{metadata.source}'.")
             logger.debug(f"Message content: {message.content}")
 
             # Add the message to the agent's memory

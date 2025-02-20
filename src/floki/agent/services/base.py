@@ -209,7 +209,7 @@ class AgentServiceBase(DaprEnabledService):
                 logger.warning("No agents available for broadcast.")
                 return
 
-            logger.info(f"{self.agent.name} preparing to broadcast message to all agents.")
+            logger.debug(f"{self.agent.name} preparing to broadcast message to all agents.")
 
             await self.publish_event_message(
                 topic_name=self.broadcast_topic_name,
@@ -218,6 +218,8 @@ class AgentServiceBase(DaprEnabledService):
                 message=message,
                 **kwargs,
             )
+
+            logger.info(f"{self.agent.name} broadcasted message to all agents.")
         except Exception as e:
             logger.error(f"Failed to broadcast message: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error broadcasting message: {str(e)}")
@@ -310,7 +312,7 @@ class AgentServiceBase(DaprEnabledService):
             async def dependency_injector(request: Request):
                 if not model:
                     raise ValueError("No message model provided for dependency injection.")
-                logger.info(f"Using model '{model.__name__}' for this request.")
+                logger.debug(f"Using model '{model.__name__}' for this request.")
                 message, metadata = await parse_cloudevent(request, model)
                 return {"message": message, "metadata": metadata}
             return dependency_injector
