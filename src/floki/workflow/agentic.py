@@ -122,7 +122,7 @@ class AgenticWorkflow(WorkflowAppService):
                 logger.warning("No agents available for broadcast.")
                 return
 
-            logger.info(f"{self.name} preparing to broadcast message to all agents.")
+            logger.debug(f"{self.name} preparing to broadcast message to all agents.")
 
             await self.publish_event_message(
                 topic_name=self.broadcast_topic_name,
@@ -131,6 +131,8 @@ class AgenticWorkflow(WorkflowAppService):
                 message=message,
                 **kwargs,
             )
+
+            logger.info(f"{self.name} broadcasted message to all agents.")
         except Exception as e:
             logger.error(f"Failed to broadcast message: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error broadcasting message: {str(e)}")
