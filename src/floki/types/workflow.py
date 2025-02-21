@@ -7,13 +7,12 @@ import uuid
 
 class NextStep(BaseModel):
     """
-    Represents the next step in a workflow, including a status verdict, 
-    the next agent to respond, an instruction message for that agent, the step and substep ids if applicable.
+    Represents the next step in a workflow, including the next agent to respond,
+    an instruction message for that agent and the step id and substep id if applicable.
     """
-    verdict: Literal["continue", "completed", "failed"] = Field(..., description="Task status: 'continue' (in progress), 'completed' (done), or 'failed' (unresolved issue).")
-    next_agent: Optional[str] = Field(None, description="The name of the agent selected to respond next.")
-    instruction: Optional[str] = Field(None, description="A direct message instructing the agent on their next action.")
-    step: Optional[int] = Field(None, description="The step number the agent will be working on.")
+    next_agent: str = Field(..., description="The name of the agent selected to respond next.")
+    instruction: str = Field(..., description="A direct message instructing the agent on their next action.")
+    step: int = Field(..., description="The step number the agent will be working on.")
     substep: Optional[float] = Field(None, description="The substep number (if applicable) the agent will be working on.")
 
 class TaskResult(BaseModel):
@@ -43,6 +42,7 @@ class PlanStep(BaseModel):
     substeps: Optional[List[SubStep]] = Field(None, description="Optional list of sub-steps.")
 
 class ProgressCheckOutput(BaseModel):
+    verdict: Literal["continue", "completed", "failed"] = Field(..., description="Task status: 'continue' (in progress), 'completed' (done), or 'failed' (unresolved issue).")
     plan_needs_update: bool = Field(..., description="Indicates whether the plan requires updates (true/false).")
     plan_status_update: Optional[List[PlanStatusUpdate]] = Field(None, description="List of status updates for steps or sub-steps. Each entry must contain `step`, optional `substep`, and `status`.")
     plan_restructure: Optional[List[PlanStep]] = Field(None, description="A list of restructured steps. Only one step should be modified at a time.")
