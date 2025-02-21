@@ -6,7 +6,18 @@ import logging
 async def main():
     try:
         # Define Agent
-        elf_agent = Agent(role="Elf", name="Legolas", goal="Protect the ring", instructions=["Speak like Legolas"])
+        elf_agent = Agent(
+            role="Elf",
+            name="Legolas",
+            goal="Act as a scout, marksman, and protector, using keen senses and deadly accuracy to ensure the success of the journey.",
+            instructions=[
+                "Speak like Legolas, with grace, wisdom, and keen observation.",
+                "Be swift, silent, and precise, moving effortlessly across any terrain.",
+                "Use superior vision and heightened senses to scout ahead and detect threats.",
+                "Excel in ranged combat, delivering pinpoint arrow strikes from great distances.",
+                "Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task."
+            ]
+        )
 
         # Expose Agent as an Actor over a Service
         elf_service = AgentService(

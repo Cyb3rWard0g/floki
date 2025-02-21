@@ -5,6 +5,7 @@ common:
   logLevel: info
   appLogDestination: console
   daprdLogDestination: console
+  configFilePath: config.yaml
 
 apps:
 - appId: HobbitApp
@@ -25,8 +26,26 @@ apps:
   command: ["python3", "app.py"]
   daprGRPCPort: 50003
 
-- appId: WorkflowApp
-  appDirPath: ./services/workflow-roundrobin/
+- appId: DwarfApp
+  appDirPath: ./services/dwarf/
   appPort: 8004
   command: ["python3", "app.py"]
   daprGRPCPort: 50004
+
+- appId: RangerApp
+  appDirPath: ./services/ranger/
+  appPort: 8007
+  command: ["python3", "app.py"]
+  daprGRPCPort: 50007
+
+- appId: WorkflowApp
+  appDirPath: ./services/workflow-llm/
+  appPort: 8008
+  command: ["python3", "app.py"]
+  daprGRPCPort: 50008
+
+- appId: EagleApp
+  appDirPath: ./services/eagle/
+  appPort: 8009
+  command: ["python3", "app.py"]
+  daprGRPCPort: 50009
