@@ -37,35 +37,6 @@ Here is the structured approach the team will follow to accomplish the task:
 {plan}
 """
 
-PROGRESS_CHECK_PROMPT = """## Progress Check
-
-### Task Context
-The team is working on the following task:
-
-{task}
-
-### Current Execution Plan:
-
-{plan}
-
-### Status Update:
-Review the current plan and progress to update the following:
-1. If this is the **first iteration**, mark **only** the first step (or its first sub-step, if applicable) as `"in_progress"` instead of `"completed"` prematurely.
-2. If any step or sub-step is **completed**, mark its status as `"completed"` and transition the next logical step or sub-step to `"in_progress"` based on conversation history.  
-3. If no updates are needed, set `"plan_needs_update": false"`.  
-4. If restructuring is required (e.g., a step needs to be rewritten or sub-steps need to be added), update `"plan_restructure"` with **only the modified step**. 
-5. **DO NOT** add unnecessary changes.
-
-### Important:
-- **Ensure steps progress logically—steps should not be marked `"completed"` unless they have been explicitly confirmed as done based on the conversation history.**
-- **If a step has sub-steps, track sub-step progress first before transitioning the main step to `"completed"`.**
-- **Only update statuses and restructure steps when necessary.**
-- **Do not make unnecessary modifications to the plan.**
-
-### Expected Output Format (JSON Schema):
-{progress_check_schema}
-"""
-
 NEXT_STEP_PROMPT = """## Task Context
 
 The team is working on the following task:
@@ -78,19 +49,109 @@ The team is working on the following task:
 ### Current Execution Plan:
 {plan}
 
-### Current Progress:
-Review the plan and determine the overall task status:
-1. **"continue"** - The task is still in progress and requires further work.
-2. **"completed"** - The task has been successfully completed (i.e., all steps are marked `"completed"`).
-3. **"failed"** - The task cannot be completed due to an unresolved issue.
-
 ### Next Steps:
-- If `"continue"`, **select the next best-suited agent from the provided list** who should respond **based on the execution plan**.
+- **Select the next best-suited agent** from the team of agents list who should respond **based on the execution plan above**.
 - **DO NOT select an agent that is not explicitly listed in `{agents}`**.
-- **You must always provide a valid agent name** from the team—**DO NOT return `null` or an empty agent name**.
+- **You must always provide a valid agent name** from the team**. DO NOT return `null` or an empty agent name**.
 - Provide a **clear, actionable instruction** for the next agent.
-- **Indicate the `step` and `substep` ids (if applicable) that this agent will be working on.**
+- **You must ONLY select step and substep IDs that EXIST in the plan.** 
+  - **A substep should ONLY be selected if it is currently `"not_started"` or `"in_progress"`**.
+  - **If the main step is `"not_started"` but has `"completed"` substeps, you must correctly identify the next `"not_started"` substep.**
+  - **DO NOT create or assume non-existent step/substep IDs.**
+  - **DO NOT reference any invalid identifiers. Always check the plan.**
 
 ### Expected Output Format (JSON Schema):
 {next_step_schema}
+"""
+
+PROGRESS_CHECK_PROMPT = """## Progress Check
+
+### Task Context
+The team is working on the following task:
+
+{task}
+
+### Current Execution Plan:
+
+{plan}
+
+### Latest Execution Context:
+- **Step ID:** {step}  
+- **Substep ID (if applicable):** {substep}  
+- **Step Execution Results:** "{results}"  
+
+### Task Evaluation:
+Assess the task progress based on **conversation history**, execution results, and the structured plan.
+
+1. **Determine Overall Task Verdict**  
+   - `"continue"` → The task is still in progress and requires further work.  
+   - `"completed"` → The task has been successfully completed (i.e., all steps are marked `"completed"`).  
+   - `"failed"` → The task cannot be completed due to an unresolved issue.  
+
+2. **Evaluate Step Completion**  
+   - If the **executed step or sub-step (above) is explicitly completed**, mark it as `"completed"`.  
+   - If the executed step **has sub-steps**, ensure **all** sub-steps are `"completed"` before marking the parent step `"completed"`.  
+
+3. **Update Step & Sub-Step Status**  
+   - **Only mark a step as `"completed"` if it has been explicitly confirmed as done.**  
+   - **Do NOT transition `"not_started"` steps to `"in_progress"` here**. That is handled in a different process.  
+   - **Only update statuses if the verdict is `"continue"`**.  
+
+4. **Plan Adjustments (Only If Necessary)**  
+   - If the step descriptions are **unclear or incomplete**, update `"plan_restructure"` with a **single modified step**.  
+   - Do **not** introduce unnecessary modifications.  
+
+### Important:
+- **Do NOT mark a step as `"completed"` unless explicitly confirmed based on execution results.**  
+- **Do NOT transition `"not_started"` steps to `"in_progress"` here**. This happens in a different process.  
+- **Only update statuses and restructure steps when necessary.**  
+- **Do not make unnecessary modifications to the plan.**  
+
+### Expected Output Format (JSON Schema):
+{progress_check_schema}
+"""
+
+SUMMARY_GENERATION_PROMPT = """# Summary Generator
+
+## Initial Task:
+{task}
+
+## Execution Overview:
+- **Final Verdict:** {verdict}  
+  _(Possible values: `"continue"`, `"completed"`, `"failed"` `max_iterations_reached`)_  
+- **Execution Plan Status:**  
+  {plan}  
+- **Last Action Taken:**
+  - **Step:** `{step}` (Sub-step `{substep}` if applicable)
+  - **Executing Agent:** `{agent}`
+  - **Execution Result:** {result}
+
+## Instructions to Generate Best Summary
+Based on the **conversation history** and **execution plan**, generate a **clear and structured** summary:
+
+1. **If the task is `"completed"`**, provide a concise but complete final summary.
+   - **Briefly describe the key steps taken** and the final outcome.
+   - Ensure clarity, avoiding excessive details while **focusing on essential takeaways**.
+   - Phrase it **as if reporting back to the user** rather than as a system log.
+
+2. **If the task is `"failed"`**, explain why.
+   - Summarize blockers, unresolved challenges, or missing steps.
+   - If applicable, suggest potential next actions to resolve the issue.
+
+3. **If the task is `"continue"`**, summarize progress so far.
+   - **Highlight completed steps** and the current state of execution.
+   - **Mention what remains unfinished** and the next logical step.
+   - Keep it informative but **concise and forward-looking**.
+
+4. **If the task is `"max_iterations_reached"`**, summarize the progress and note the limitation.
+   - Highlight what has been **achieved so far** and what **remains unfinished**.
+   - Clearly state that the **workflow reached its iteration limit** before completion.
+   - If possible, **suggest next steps** (e.g., refining the execution plan, restarting the task, or adjusting agent strategies).
+
+## Expected Output
+A structured summary that is:
+- **Clear and to the point**  
+- **Context-aware (includes results and execution progress)**  
+- **User-friendly (reads naturally rather than like system logs)**  
+- **Relevant (avoids unnecessary details while maintaining accuracy)** 
 """
