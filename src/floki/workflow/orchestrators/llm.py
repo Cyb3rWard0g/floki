@@ -153,9 +153,10 @@ class LLMOrchestrator(AgenticWorkflow):
         status_updates = progress.get("plan_status_update", [])
         plan_updates = progress.get("plan_restructure", [])
 
-        # Step 10: Process progress suggestions and iteration condition
-        if verdict != "continue" or iteration + 1 >= self.max_iterations:
-            if iteration >= self.max_iterations:
+        # Step 10: Process progress suggestions and next iteration count
+        next_iteration_count = iteration + 1
+        if verdict != "continue" or next_iteration_count >= self.max_iterations:
+            if next_iteration_count >= self.max_iterations:
                 verdict = "max_iterations_reached"
             
             if not ctx.is_replaying:
@@ -177,7 +178,7 @@ class LLMOrchestrator(AgenticWorkflow):
         
         # Step 11: Update ChatLoop state and continue workflow
         input["message"] = task_results
-        input["iteration"] = iteration + 1
+        input["iteration"] = next_iteration_count
 
         # Restart workflow with updated ChatLoop state
         ctx.continue_as_new(input)
