@@ -12,7 +12,7 @@ async def main():
             state_store_name="agenticworkflowstate",
             port=8008,
             daprGrpcPort=50008,
-            max_iterations=20
+            max_iterations=25
         )
 
         await agentic_orchestrator.start()
