@@ -209,7 +209,7 @@ class AgentServiceBase(DaprEnabledService):
                 logger.warning("No agents available for broadcast.")
                 return
 
-            logger.debug(f"{self.agent.name} preparing to broadcast message to all agents.")
+            logger.info(f"{self.agent.name} broadcasting message to all agents.")
 
             await self.publish_event_message(
                 topic_name=self.broadcast_topic_name,
@@ -219,7 +219,7 @@ class AgentServiceBase(DaprEnabledService):
                 **kwargs,
             )
 
-            logger.info(f"{self.agent.name} broadcasted message to all agents.")
+            logger.debug(f"{self.agent.name} broadcasted message to all agents.")
         except Exception as e:
             logger.error(f"Failed to broadcast message: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error broadcasting message: {str(e)}")
@@ -239,7 +239,7 @@ class AgentServiceBase(DaprEnabledService):
                 raise HTTPException(status_code=404, detail=f"Agent {name} not found.")
 
             agent_metadata = agents_metadata[name]
-            logger.info(f"{self.agent.name} preparing to send message to agent '{name}'.")
+            logger.info(f"{self.agent.name} sending message to agent '{name}'.")
 
             await self.publish_event_message(
                 topic_name=agent_metadata["topic_name"],
@@ -261,7 +261,7 @@ class AgentServiceBase(DaprEnabledService):
             **kwargs: Additional metadata fields to include in the message.
         """
         try:
-            logger.debug(f"{self.agent.name} preparing to publish task results.")
+            logger.info(f"{self.agent.name} publishing task results.")
 
             await self.publish_event_message(
                 topic_name=self.task_results_topic_name,
@@ -271,7 +271,7 @@ class AgentServiceBase(DaprEnabledService):
                 **kwargs,
             )
 
-            logger.info(f"{self.agent.name} published task results.")
+            logger.debug(f"{self.agent.name} published task results.")
         except Exception as e:
             logger.error(f"Failed to publish task result: {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error publishing task result: {str(e)}")
