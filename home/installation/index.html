@@ -1101,8 +1101,14 @@ poetry<span class="w"> </span>install
 </div>
 <p>Initialize Dapr locally to set up a self-hosted environment for development. This process fetches and installs the Dapr sidecar binaries, runs essential services as Docker containers, and prepares a default components folder for your application. For detailed steps, see the official <a href="https://docs.dapr.io/getting-started/install-dapr-selfhost/">guide on initializing Dapr locally</a>.</p>
 <p><img alt="" src="../../img/home_installation_init.png" /></p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Currently Floki works best with dapr <code>1.15.0-rc.14</code> (until 1.15 is released). Therefore, I highly recommend to install that version.</p>
+</div>
 <p>To initialize the Dapr control plane containers and create a default configuration file, run:</p>
-<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>init
+<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>uninstall<span class="w"> </span>--all
+
+dapr<span class="w"> </span>init<span class="w"> </span>--runtime-version<span class="o">=</span><span class="m">1</span>.15.0-rc.14<span class="w"> </span>
 </code></pre></div>
 <p>Verify you have container instances with <code>daprio/dapr</code>, <code>openzipkin/zipkin</code>, and <code>redis</code> images running:</p>
 <div class="language-bash highlight"><pre><span></span><code>docker<span class="w"> </span>ps

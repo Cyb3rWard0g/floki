@@ -106,7 +106,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#multi-agent-event-driven-workflows" class="md-skip">
+        <a href="#agentic-workflows" class="md-skip">
           Skip to content
         </a>
       
@@ -694,9 +694,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#your-first-service" class="md-nav__link">
+  <a href="#set-up-an-environment-variables-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Your First Service
+      Set Up an Environment Variables File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#define-your-first-agent-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      Define Your First Agent Service
     </span>
   </a>
   
@@ -708,6 +717,21 @@
       The Agentic Workflow Service
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="The Agentic Workflow Service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#orchestrators" class="md-nav__link">
+    <span class="md-ellipsis">
+      Orchestrators
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -757,13 +781,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#customizing-the-workflow" class="md-nav__link">
+  <a href="#switching-orchestrator" class="md-nav__link">
     <span class="md-ellipsis">
-      Customizing the Workflow
+      Switching Orchestrator
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Customizing the Workflow">
+    <nav class="md-nav" aria-label="Switching Orchestrator">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -776,9 +800,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#switching-to-the-llm-based-workflow" class="md-nav__link">
+  <a href="#switching-to-the-random-workflow" class="md-nav__link">
     <span class="md-ellipsis">
-      Switching to the LLM-based Workflow
+      Switching to the Random Workflow
     </span>
   </a>
   
@@ -794,9 +818,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#testing-the-llm-based-workflow" class="md-nav__link">
+  <a href="#testing-new-workflow" class="md-nav__link">
     <span class="md-ellipsis">
-      Testing the LLM-based Workflow
+      Testing New Workflow
     </span>
   </a>
   
@@ -1012,9 +1036,18 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#your-first-service" class="md-nav__link">
+  <a href="#set-up-an-environment-variables-file" class="md-nav__link">
     <span class="md-ellipsis">
-      Your First Service
+      Set Up an Environment Variables File
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#define-your-first-agent-service" class="md-nav__link">
+    <span class="md-ellipsis">
+      Define Your First Agent Service
     </span>
   </a>
   
@@ -1026,6 +1059,21 @@
       The Agentic Workflow Service
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="The Agentic Workflow Service">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#orchestrators" class="md-nav__link">
+    <span class="md-ellipsis">
+      Orchestrators
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -1075,13 +1123,13 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#customizing-the-workflow" class="md-nav__link">
+  <a href="#switching-orchestrator" class="md-nav__link">
     <span class="md-ellipsis">
-      Customizing the Workflow
+      Switching Orchestrator
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Customizing the Workflow">
+    <nav class="md-nav" aria-label="Switching Orchestrator">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1094,9 +1142,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#switching-to-the-llm-based-workflow" class="md-nav__link">
+  <a href="#switching-to-the-random-workflow" class="md-nav__link">
     <span class="md-ellipsis">
-      Switching to the LLM-based Workflow
+      Switching to the Random Workflow
     </span>
   </a>
   
@@ -1112,9 +1160,9 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#testing-the-llm-based-workflow" class="md-nav__link">
+  <a href="#testing-new-workflow" class="md-nav__link">
     <span class="md-ellipsis">
-      Testing the LLM-based Workflow
+      Testing New Workflow
     </span>
   </a>
   
@@ -1148,20 +1196,23 @@
   
 
 
-<h1 id="multi-agent-event-driven-workflows">Multi-Agent Event-Driven Workflows<a class="headerlink" href="#multi-agent-event-driven-workflows" title="Permanent link">&para;</a></h1>
+<h1 id="agentic-workflows">Agentic Workflows<a class="headerlink" href="#agentic-workflows" title="Permanent link">&para;</a></h1>
 <div class="admonition info">
 <p class="admonition-title">Info</p>
 <p>This quickstart requires <code>Dapr CLI</code> and <code>Docker</code>. You must have your <a href="../../installation/">local Dapr environment set up</a>.</p>
 </div>
-<p>Event-Driven Agentic Workflows in <code>Floki</code> take advantage of an event-driven system using pub/sub messaging and a shared message bus. Agents operate as autonomous entities that respond to events dynamically, enabling real-time interactions and collaboration. These workflows are highly adaptable, allowing agents to communicate, share tasks, and reason through events triggered by their environment. This approach is best suited for decentralized systems requiring dynamic agent collaboration across distributed applications.</p>
+<p>Traditional workflows follow fixed, step-by-step processes, while autonomous agents make real-time decisions based on reasoning and available data. Agentic workflows combine the best of both approaches, integrating structured execution with reasoning loops to enable more adaptive decision-making.</p>
+<p>This allows systems to analyze information, adjust to new conditions, and refine actions dynamically rather than strictly following a predefined sequence. By incorporating planning, feedback loops, and model-driven adjustments, agentic workflows provide both scalability and predictability while still allowing for autonomous adaptation.</p>
+<p>In <code>Floki</code>, agentic workflows leverage LLM-based tasks, reasoning loop patterns, and an event-driven system powered by pub/sub messaging and a shared message bus. Agents operate autonomously, responding to events in real time, making decisions, and collaborating dynamically. This makes the system highly adaptable—agents can communicate, share tasks, and adjust based on new information, ensuring fluid coordination across distributed environments. This approach is particularly useful for decentralized systems that require flexible, intelligent collaboration across multiple agents and applications.</p>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>We will demonstrate this concept using the <a href="https://github.com/Cyb3rWard0g/floki/tree/main/cookbook/workflows/multi_agent_lotr">Multi-Agent Workflow Guide</a> from our Cookbook, which outlines a step-by-step guide to implementing a basic agentic workflow.</p>
 </div>
 <h2 id="agents-as-services">Agents as Services<a class="headerlink" href="#agents-as-services" title="Permanent link">&para;</a></h2>
-<p>In <code>Floki</code>, agents can be exposed as services, making them reusable, modular, and easy to integrate into event-driven workflows. Each agent runs as a microservice, wrapped in a <a href="https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/">Dapr-enabled FastAPI server</a>. This design allows agents to operate independently while communicating through <a href="https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-overview/">Dapr’s pub/sub</a> messaging and interacting with state stores or other services.</p>
-<p>The way to structure such a project is straightforward. We organize our services into a directory that contains individual folders for each agent, along with a components/ directory for Dapr configurations. Each agent service includes its own app.py file, where the FastAPI server and the agent logic are defined.</p>
-<div class="language-text highlight"><pre><span></span><code>components/                # Dapr configuration files
+<p>In <code>Floki</code>, agents can be exposed as services, making them reusable, modular, and easy to integrate into agentic workflows. Each agent runs as a microservice, wrapped in a <a href="https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/">Dapr-enabled FastAPI server</a>. This design allows agents to operate independently while communicating through <a href="https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-overview/">Dapr’s pub/sub</a> messaging and interacting with state stores or other services.</p>
+<p>The way to structure such a project is straightforward. We organize our services into a directory that contains individual folders for each agent, along with a <code>components</code> directory for Dapr resources configurations. Each agent service includes its own app.py file, where the FastAPI server and the agent logic are defined.</p>
+<div class="language-text highlight"><pre><span></span><code>dapr.yaml                  # Dapr main config file
+components/                # Dapr resource files
 ├── statestore.yaml        # State store configuration
 ├── pubsub.yaml            # Pub/Sub configuration
 └── ...                    # Other Dapr components
@@ -1174,7 +1225,12 @@ services/                  # Directory for agent services
 │   └── ...                # Additional agent2 files
 └── ...                    # More agents
 </code></pre></div>
-<h2 id="your-first-service">Your First Service<a class="headerlink" href="#your-first-service" title="Permanent link">&para;</a></h2>
+<h2 id="set-up-an-environment-variables-file">Set Up an Environment Variables File<a class="headerlink" href="#set-up-an-environment-variables-file" title="Permanent link">&para;</a></h2>
+<p>This example uses our default <code>LLM Orchestrator</code>. Therefore, you have to create an <code>.env</code> file to securely store your Inference Service (i.e. OpenAI) API keys and other sensitive information. For example:</p>
+<div class="language-text highlight"><pre><span></span><code>OPENAI_API_KEY=&quot;your-api-key&quot;
+OPENAI_BASE_URL=&quot;https://api.openai.com/v1&quot;
+</code></pre></div>
+<h2 id="define-your-first-agent-service">Define Your First Agent Service<a class="headerlink" href="#define-your-first-agent-service" title="Permanent link">&para;</a></h2>
 <p>Let's start by definining a <code>Hobbit</code> service with a specific <code>name</code>, <code>role</code>, <code>goal</code> and <code>instructions</code>.</p>
 <div class="language-text highlight"><pre><span></span><code>services/                  # Directory for agent services
 ├── hobbit/                # Hobbit Service
@@ -1192,10 +1248,17 @@ services/                  # Directory for agent services
         <span class="n">hobbit_agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span>
             <span class="n">role</span><span class="o">=</span><span class="s2">&quot;Hobbit&quot;</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Frodo&quot;</span><span class="p">,</span>
-            <span class="n">goal</span><span class="o">=</span><span class="s2">&quot;Take the ring to Mordor&quot;</span><span class="p">,</span>
-            <span class="n">instructions</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Speak like Frodo&quot;</span><span class="p">]</span>
+            <span class="n">goal</span><span class="o">=</span><span class="s2">&quot;Carry the One Ring to Mount Doom, resisting its corruptive power while navigating danger and uncertainty.&quot;</span><span class="p">,</span>
+            <span class="n">instructions</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;Speak like Frodo, with humility, determination, and a growing sense of resolve.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Endure hardships and temptations, staying true to the mission even when faced with doubt.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Seek guidance and trust allies, but bear the ultimate burden alone when necessary.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Move carefully through enemy-infested lands, avoiding unnecessary risks.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task.&quot;</span>
+            <span class="p">]</span>
         <span class="p">)</span>
-        <span class="c1"># Expose Agent as a Service</span>
+
+        <span class="c1"># Expose Agent as an Actor over a Service</span>
         <span class="n">hobbit_service</span> <span class="o">=</span> <span class="n">AgentService</span><span class="p">(</span>
             <span class="n">agent</span><span class="o">=</span><span class="n">hobbit_agent</span><span class="p">,</span>
             <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
@@ -1219,38 +1282,40 @@ services/                  # Directory for agent services
 <p>Key Considerations:</p>
 <ul>
 <li>Ensure the <code>message_bus_name</code> matches the <code>pub/sub</code> component name in your <code>pubsub.yaml</code> file.</li>
-<li>Verify the <code>agents_state_store_name</code> matches the state store component defined in your <code>statestore.yaml</code> file.</li>
+<li>Verify the <code>agents_state_store_name</code> matches the state store component defined in your <code>agentstate.yaml</code> file.</li>
 <li>Increment the port for each new agent service (e.g., 8001, 8002, 8003).</li>
 <li>Similarly, increment the <code>daprGrpcPort</code> for each service (e.g., 50001, 50002, 50003) to avoid conflicts.</li>
 <li>Customize the Agent parameters (<code>role</code>, <code>name</code>, <code>goal</code>, and <code>instructions</code>) to match the behavior you want for each service.</li>
 </ul>
 <h2 id="the-agentic-workflow-service">The Agentic Workflow Service<a class="headerlink" href="#the-agentic-workflow-service" title="Permanent link">&para;</a></h2>
-<p>The Agentic Workflow Service in Floki extends workflows to orchestrate communication among agents. It allows you to send messages to agents to trigger their participation and monitors a shared message bus to listen for all messages being passed. This enables dynamic collaboration and task distribution among agents.</p>
+<p>The Agentic Workflow Service in <code>Floki</code> extends workflows to orchestrate communication among agents. It allows you to send messages to agents to trigger their participation and monitors a shared message bus to listen for all messages being passed. This enables dynamic collaboration and task distribution among agents.</p>
 <p>Types of Agentic Workflows:</p>
+<h3 id="orchestrators">Orchestrators<a class="headerlink" href="#orchestrators" title="Permanent link">&para;</a></h3>
+<p>At the moment, <code>Floki</code> uses <code>Agentic Workflow</code> services to describe the orchestrator of an agentic system. We can also define the <code>Agent</code> itself as an agentic workflow (more on this coming soon...)</p>
 <ul>
 <li><strong>Random</strong>: Distributes tasks to agents randomly, ensuring a non-deterministic selection of participating agents for each task.</li>
 <li><strong>RoundRobin</strong>: Cycles through agents in a fixed order, ensuring each agent has an equal opportunity to participate in tasks.</li>
 <li><strong>LLM-based</strong>: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.</li>
 </ul>
-<p>Next, we’ll define a <code>RoundRobin Orchestrator</code> to demonstrate how this concept can be implemented.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">RoundRobinOrchestrator</span>
+<p>Next, we’ll define an <code>LLM Orchestrator</code> to demonstrate how this concept can be implemented.</p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMOrchestrator</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">roundrobin_workflow_service</span> <span class="o">=</span> <span class="n">RoundRobinOrchestrator</span><span class="p">(</span>
+        <span class="n">agentic_orchestrator</span> <span class="o">=</span> <span class="n">LLMOrchestrator</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Orchestrator&quot;</span><span class="p">,</span>
             <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
             <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentstatestore&quot;</span><span class="p">,</span>
             <span class="n">state_store_name</span><span class="o">=</span><span class="s2">&quot;agenticworkflowstate&quot;</span><span class="p">,</span>
-            <span class="n">port</span><span class="o">=</span><span class="mi">8004</span><span class="p">,</span>
-            <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50004</span><span class="p">,</span>
-            <span class="n">max_iterations</span><span class="o">=</span><span class="mi">2</span>
+            <span class="n">port</span><span class="o">=</span><span class="mi">8008</span><span class="p">,</span>
+            <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50008</span><span class="p">,</span>
+            <span class="n">max_iterations</span><span class="o">=</span><span class="mi">25</span>
         <span class="p">)</span>
 
-        <span class="k">await</span> <span class="n">roundrobin_workflow_service</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="k">await</span> <span class="n">agentic_orchestrator</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error starting service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -1263,13 +1328,13 @@ services/                  # Directory for agent services
 </code></pre></div>
 <p>Unlike <code>Agents as Services</code>, the <code>Agentic Workflow Service</code> does not require an agent parameter since it orchestrates communication among multiple agents rather than representing a single agent. Instead, the configuration focuses on workflow-specific parameters:</p>
 <ul>
-<li><strong>Max Iterations</strong>: Defines the maximum number of iterations the workflow will perform, ensuring controlled task execution and preventing infinite loops.</li>
-<li><strong>Workflow State Store Name</strong>: Specifies the state store used to persist the workflow’s state, allowing for reliable recovery and tracking of workflow progress.</li>
-<li><strong>LLM Inference Client</strong>: Although an individual agent is not required, the LLM-based Agentic Workflow Service depends on an LLM Inference Client. By default, it uses the <a href="https://github.com/Cyb3rWard0g/floki/blob/main/src/floki/llm/openai/chat.py">OpenAIChatClient()</a> from the Floki library.</li>
+<li><strong>Message Bus Name</strong> (<code>message_bus_name</code>): Defines the shared message bus that enables communication between all agents. Each agent publishes and subscribes to its own designated topic within this bus, facilitating real-time event-driven interactions.</li>
+<li><strong>Agents Registry Store Name</strong> (<code>agents_registry_store_name</code>): Specifies the state store where agent metadata is registered. Every time an agent joins or updates its status, this registry ensures the orchestrator is aware of all available agents and their capabilities.</li>
+<li><strong>Workflow State Store Name</strong> (<code>state_store_name</code>): Stores the workflow’s structured execution data, including the task plan, message exchanges, and task completion records. This state is retrieved by tasks and can be used to provide context when retrying operations. While Dapr manages the underlying workflow state for execution and fault tolerance, this store ensures that relevant contextual data is preserved for workflow decisions and agent interactions.</li>
+<li><strong>Max Iterations</strong> (<code>max_iterations</code>): Defines the maximum number of iterations the workflow will execute before terminating. This prevents infinite loops and ensures controlled task execution.</li>
 </ul>
-<p>These differences reflect the distinct purpose of the Agentic Workflow Service, which acts as a centralized orchestrator rather than an individual agent service. The inclusion of the LLM Inference Client in the LLM-based workflows allows the orchestrator to leverage natural language processing for intelligent task routing and decision-making.</p>
 <h2 id="the-multi-app-run-template-file">The Multi-App Run template file<a class="headerlink" href="#the-multi-app-run-template-file" title="Permanent link">&para;</a></h2>
-<p>The Multi-App Run Template File is a YAML configuration file named <code>dapr.yaml</code> that allows you to run multiple applications simultaneously. This file is placed at the same level as the <code>components/</code> and <code>services/</code> directories, ensuring a consistent and organized project structure.</p>
+<p>The <code>Multi-App Run Template</code> File is a YAML configuration file named <code>dapr.yaml</code> that allows you to run multiple applications simultaneously. This file is placed at the same level as the <code>components/</code> and <code>services/</code> directories, ensuring a consistent and organized project structure.</p>
 <div class="language-text highlight"><pre><span></span><code>dapr.yaml                  # The Multi-App Run template
 components/                # Dapr configuration files
 ├── statestore.yaml        # State store configuration
@@ -1292,6 +1357,7 @@ services/                  # Directory for agent services
 <span class="w">  </span><span class="nt">logLevel</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">info</span>
 <span class="w">  </span><span class="nt">appLogDestination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">console</span>
 <span class="w">  </span><span class="nt">daprdLogDestination</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">console</span>
+<span class="w">  </span><span class="nt">configFilePath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config.yaml</span>
 
 <span class="nt">apps</span><span class="p">:</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">HobbitApp</span>
@@ -1306,125 +1372,122 @@ services/                  # Directory for agent services
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;app.py&quot;</span><span class="p p-Indicator">]</span>
 <span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50002</span>
 
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ElfApp</span>
-<span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/elf/</span>
-<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8003</span>
+<span class="nn">...</span>
+
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RangerApp</span>
+<span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/ranger/</span>
+<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8007</span>
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;app.py&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50003</span>
+<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50007</span>
 
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkflowApp</span>
 <span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/workflow-llm/</span>
-<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8004</span>
+<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8008</span>
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;app.py&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50004</span>
+<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50008</span>
 </code></pre></div>
 <h2 id="starting-all-service-servers">Starting All Service Servers<a class="headerlink" href="#starting-all-service-servers" title="Permanent link">&para;</a></h2>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p>Make sure you have your environment variables set up in an <code>.env</code> file so that the library can pick it up and use it to communicate with <code>OpenAI</code> services. We set them up in the <a href="../llm/">LLM Inference Client</a> section</p>
 </div>
-<p>To start all the service servers defined in your project, you can use the Dapr CLI with the Multi-App Run template file. When you provide a directory path, the CLI will look for the dapr.yaml file (the default name for the template) in that directory. If the file is not found, the CLI will return an error.</p>
+<p>To start all the service servers defined in your project, you can use the <code>Dapr CLI</code> with the <code>Multi-App Run template</code> file. When you provide a directory path, the CLI will look for the <code>dapr.yaml</code> file (the default name for the template) in that directory. If the file is not found, the CLI will return an error.</p>
 <p>To execute the command, ensure you are in the root directory where the dapr.yaml file is located, then run:</p>
 <div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>-f<span class="w"> </span>.
 </code></pre></div>
 <p>This command reads the <code>dapr.yaml</code> file and starts all the services specified in the template.</p>
 <h2 id="monitor-services-initialization">Monitor Services Initialization<a class="headerlink" href="#monitor-services-initialization" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Verify console Logs: Each service outputs logs to confirm successful initialization.</li>
+<li>Verify agent console logs: Each service outputs logs to confirm successful initialization.</li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_agent_initialization.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_agent_initialization_hobbit.png" /></p>
+<ul>
+<li>Verify orchestrator console logs: The workflow is initialized showing workflow and task registrations.</li>
+</ul>
+<p><img alt="" src="../../../img/workflows_llm_orchestrator_initialization.png" /></p>
 <ul>
 <li>Verify Redis entries: Access the Redis Insight interface at <code>http://localhost:5540/</code></li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_redis_agents_metadata.png" /></p>
-<ul>
-<li>Verify your agents are healthy: Check the console logs. You should see the following:</li>
-</ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_agents_health.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_redis_agents_metadata.png" /></p>
 <h2 id="start-workflow-via-an-http-request">Start Workflow via an HTTP Request<a class="headerlink" href="#start-workflow-via-an-http-request" title="Permanent link">&para;</a></h2>
 <p>Once all services are running, you can initiate the workflow by making an HTTP POST request to the Agentic Workflow Service. This service orchestrates the workflow, triggering agent actions and handling communication among agents.</p>
 <p>Here’s an example of how to start the workflow using <code>curl</code>:</p>
 <div class="language-bash highlight"><pre><span></span><code>curl<span class="w"> </span>-i<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8004/RunWorkflow<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;message&quot;: &quot;How to get to Mordor? Lets all help!&quot;}&#39;</span>
+<span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;message&quot;: &quot;Take the Ring to Mordor!&quot;}&#39;</span>
 </code></pre></div>
 <div class="language-text highlight"><pre><span></span><code>HTTP/1.1 200 OK
-date: Thu, 05 Dec 2024 07:46:19 GMT
+date: Sat, 22 Feb 2025 06:12:35 GMT
 server: uvicorn
 content-length: 104
 content-type: application/json
 
-{&quot;message&quot;:&quot;Workflow initiated successfully.&quot;,&quot;workflow_instance_id&quot;:&quot;422ab3c3f58f4221a36b36c05fefb99b&quot;}
+{&quot;message&quot;:&quot;Workflow initiated successfully.&quot;,&quot;workflow_instance_id&quot;:&quot;8cd46d085d6a44fbb46e1c7c92abdd0f&quot;}
 </code></pre></div>
 <p>In this example:</p>
 <ul>
-<li>The request is sent to the Agentic Workflow Service running on port 8004.</li>
-<li>The message parameter is passed as input to the workflow, which the agents will process.</li>
+<li>The request is sent to the Agentic Workflow Service running on port <code>8008</code>.</li>
+<li>The message parameter is passed as input to the <code>LLM Workflow</code>, which is then used to generate the plan and trigger the agentic workflow.</li>
 <li>This command demonstrates how to interact with the Agentic Workflow Service to kick off a new workflow.</li>
 </ul>
 <h2 id="monitoring-workflow-execution">Monitoring Workflow Execution<a class="headerlink" href="#monitoring-workflow-execution" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Check console logs to trace activities in the workflow.</li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_console_logs_activities.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_console_logs_activities.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_console_logs_activities_chat_completions.png" /></p>
 <ul>
 <li>Verify Redis entries: Access the Redis Insight interface at <code>http://localhost:5540/</code></li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_redis_broadcast_channel.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_redis_broadcast_channel.png" /></p>
+<ul>
+<li>You can also check the <code>Workflow State</code> in the Redis Insight interface at <code>http://localhost:5540</code>. You can click on it, copy the log entry and paste it in your favorite editor. It is a <code>JSON</code> object. You will be able to see the chat history, the plan and tasks being completed.</li>
+</ul>
+<p><img alt="" src="../../../img/workflows_llm_redis_workflow_state.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_redis_workflow_state_edit_mode.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_workflow_state_json_object.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_workflow_state_json_object_plan.png" /></p>
 <ul>
 <li>As mentioned earlier, when we ran dapr init, Dapr initialized, a <code>Zipkin</code> container instance, used for observability and tracing. Open <code>http://localhost:9411/zipkin/</code> in your browser to view traces &gt; Find a Trace &gt; Run Query.</li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_zipkin_portal.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_zipkin_portal.png" /></p>
 <ul>
 <li>Select the trace entry with multiple spans labeled <code>&lt;workflow name&gt;: /taskhubsidecarservice/startinstance.</code>. When you open this entry, you’ll see details about how each task or activity in the workflow was executed. If any task failed, the error will also be visible here.</li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_zipkin_spans.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_zipkin_spans_start.png" /></p>
 <ul>
 <li>Check console logs to validate if workflow was executed successfuly.</li>
 </ul>
-<p><img alt="" src="../../../img/workflows_roundrobin_console_logs_complete.png" /></p>
-<h2 id="customizing-the-workflow">Customizing the Workflow<a class="headerlink" href="#customizing-the-workflow" title="Permanent link">&para;</a></h2>
-<p>The default setup uses the <a href="https://github.com/Cyb3rWard0g/floki/blob/main/cookbook/workflows/multi_agent_lotr/services/workflow-roundrobin/app.py">workflow-roundrobin service</a>, which processes agent tasks in a <code>round-robin</code> order. However, you can easily switch to a different workflow type by updating the <code>dapr.yaml</code> file.</p>
+<p><img alt="" src="../../../img/workflows_llm_console_logs_complete.png" /></p>
+<h2 id="switching-orchestrator">Switching Orchestrator<a class="headerlink" href="#switching-orchestrator" title="Permanent link">&para;</a></h2>
+<p>You can easily switch to a different <code>Orchestrator</code> type by updating the <code>dapr.yaml</code> file.</p>
 <h3 id="available-workflow-options">Available Workflow Options<a class="headerlink" href="#available-workflow-options" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>RoundRobin</strong>: Cycles through agents in a fixed order, ensuring each agent gets an equal opportunity to process tasks.</li>
 <li><strong>Random</strong>: Selects an agent randomly for each task.</li>
 <li><strong>LLM-based</strong>: Uses a large language model (e.g., GPT-4o) to determine the most suitable agent based on the message and context.</li>
 </ul>
-<h3 id="switching-to-the-llm-based-workflow">Switching to the LLM-based Workflow<a class="headerlink" href="#switching-to-the-llm-based-workflow" title="Permanent link">&para;</a></h3>
+<h3 id="switching-to-the-random-workflow">Switching to the Random Workflow<a class="headerlink" href="#switching-to-the-random-workflow" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Set Up Environment Variables: Create an <code>.env</code> file to securely store your API keys and other sensitive information. For example:</li>
-</ul>
-<div class="language-text highlight"><pre><span></span><code>OPENAI_API_KEY=&quot;your-api-key&quot;
-OPENAI_BASE_URL=&quot;https://api.openai.com/v1&quot;
-</code></pre></div>
-<ul>
-<li>Update dapr.yaml: Modify the appDirPath for the workflow service to point to the workflow-llm directory:</li>
+<li>Update dapr.yaml: Modify the appDirPath for the workflow service to point to the <code>workflow-random</code> directory:</li>
 </ul>
 <div class="language-yaml highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkflowApp</span>
-<span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/workflow-llm/</span>
-<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8004</span>
+<span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/workflow-random/</span>
+<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8008</span>
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;app.py&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50004</span>
+<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50008</span>
 </code></pre></div>
-<ul>
-<li>Load Environment Variables: Ensure your service script uses Python-dotenv to load these variables automatically:</li>
-</ul>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
-<span class="n">load_dotenv</span><span class="p">()</span>  <span class="c1"># Load variables from .env</span>
-</code></pre></div>
-<p>With these updates, the workflow will use the <code>LLM</code> to intelligently decide which agent to activate.</p>
 <h3 id="reset-redis-database">Reset Redis Database<a class="headerlink" href="#reset-redis-database" title="Permanent link">&para;</a></h3>
 <ol>
 <li>Access the Redis Insight interface at <code>http://localhost:5540/</code></li>
 <li>In the search bar type <code>*</code> to select all items in the database.</li>
 <li>Click on <code>Bulk Actions</code> &gt; <code>Delete</code> &gt; <code>Delete</code></li>
 </ol>
-<p><img alt="" src="../../../img/workflows_roundrobin_redis_reset.png" /></p>
+<p><img alt="" src="../../../img/workflows_llm_redis_reset.png" /></p>
 <p>You should see an empty database now:</p>
-<p><img alt="" src="../../../img/workflows_roundrobin_redis_empty.png" /></p>
-<h3 id="testing-the-llm-based-workflow">Testing the LLM-based Workflow<a class="headerlink" href="#testing-the-llm-based-workflow" title="Permanent link">&para;</a></h3>
-<p>Restart the services with <code>dapr run -f</code> . and send a message to the workflow. Ensure your <code>.env</code> file is configured correctly and contains the necessary credentials.</p>
+<p><img alt="" src="../../../img/workflows_llm_redis_empty.png" /></p>
+<h3 id="testing-new-workflow">Testing New Workflow<a class="headerlink" href="#testing-new-workflow" title="Permanent link">&para;</a></h3>
+<p>Restart the services with <code>dapr run -f</code> . and send a message to the workflow. Always ensure your <code>.env</code> file is configured correctly and contains the necessary credentials if needed.</p>
 
 
 
