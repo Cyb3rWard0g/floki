@@ -1,7 +1,8 @@
-from typing import Union, Dict, Any, Type, Optional, Iterator, Literal
+from typing import Union, Dict, Any, Type, Optional, Iterator, Literal, get_args
 from floki.llm.utils import StreamHandler, StructureHandler
 from dataclasses import is_dataclass, asdict
 from floki.types import ChatCompletion
+from collections.abc import Iterable
 from pydantic import BaseModel
 import logging
 
@@ -44,13 +45,26 @@ class ResponseHandler:
                 structured_response_json = StructureHandler.extract_structured_response(
                     response=response, llm_provider=llm_provider, structured_mode=structured_mode
                 )
+
+                # Processng Iterable Models
+                is_iterable = isinstance(response_format, Iterable)
+                if is_iterable:
+                    item_model = get_args(response_format)[0]
+                    response_format = StructureHandler.create_iterable_model(item_model)
+                
+                # Validating Response
                 structured_response_instance = StructureHandler.validate_response(
                     structured_response_json, response_format
                 )
+
                 if isinstance(structured_response_instance, response_format):
                     logger.info("Structured output was successfully validated.")
-                    logger.info(f"Returning an instance of {type(structured_response_instance)}.")
-                    return structured_response_instance
+                    if is_iterable:
+                        logger.debug(f"Returning objects from an instance of {type(structured_response_instance)}.")
+                        return structured_response_instance.objects
+                    else:
+                        logger.debug(f"Returning an instance of {type(structured_response_instance)}.")
+                        return structured_response_instance
                 else:
                     logger.error("Validation failed for structured response.")
 

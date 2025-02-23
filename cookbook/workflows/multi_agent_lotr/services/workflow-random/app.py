@@ -10,8 +10,8 @@ async def main():
             message_bus_name="messagepubsub",
             agents_registry_store_name="agentstatestore",
             state_store_name="agenticworkflowstate",
-            port=8004,
-            daprGrpcPort=50004,
+            port=8008,
+            daprGrpcPort=50008,
             max_iterations=3
         )
         await random_workflow_service.start()

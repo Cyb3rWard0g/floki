@@ -209,25 +209,33 @@ class WorkflowApp(BaseModel):
             logger.error(f"Failed to save state for key '{self.state_name}': {e}")
             raise
     
-    def task(self,func: Optional[Callable] = None, *, name: Optional[str] = None, description: Optional[str] = None, agent: Optional[Any] = None, agent_method: Optional[Union[str, Callable]] = "run", llm: Optional[Any] = None, llm_method: Optional[Union[str, Callable]] = "generate") -> Callable:
+    def task(
+        self,
+        func: Optional[Callable] = None,
+        *,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        agent: Optional[Any] = None,
+        agent_method: Optional[Union[str, Callable]] = "run",
+        llm: Optional[Any] = None,
+        llm_method: Optional[Union[str, Callable]] = "generate",
+        include_chat_history: bool = False
+    ) -> Callable:
         """
-        Custom decorator to create and register a workflow task, supporting async and extended capabilities.
-
-        This decorator allows for the creation and registration of tasks that can be executed
-        as part of a Dapr workflow. The task can optionally integrate with an agent or LLM 
-        for enhanced functionality. It supports both synchronous and asynchronous functions.
+        Custom decorator to create and register a workflow task.
 
         Args:
-            func (Callable, optional): The function to be decorated as a workflow task. Defaults to None.
-            name (Optional[str]): The name to register the task with. Defaults to the function's name.
-            description (Optional[str]): A textual description of the task. Defaults to None.
-            agent (Optional[Any]): The agent to use for executing the task if a description is provided. Defaults to None.
-            agent_method (Optional[Union[str, Callable]]): The method or callable to invoke the agent. Defaults to "run".
-            llm (Optional[Any]): The LLM client to use for executing the task if a description is provided. Defaults to None.
-            llm_method (Optional[Union[str, Callable]]): The method or callable to invoke the LLM client. Defaults to "generate".
+            func (Callable, optional): Function to be wrapped as a workflow task.
+            name (Optional[str]): Task name.
+            description (Optional[str]): Task description.
+            agent (Optional[Any]): The agent to execute the task.
+            agent_method (Optional[Union[str, Callable]]): Agent method name or callable.
+            llm (Optional[Any]): The LLM client.
+            llm_method (Optional[Union[str, Callable]]): LLM method name or callable.
+            include_chat_history (bool, optional): Whether to include previous chat messages in LLM tasks. Defaults to False.
 
         Returns:
-            Callable: The decorated function wrapped with task logic and registered as an activity.
+            Callable: The decorated function.
         """
         # Check if the first argument is a string, implying it's the description
         if isinstance(func, str) is True:
@@ -252,6 +260,8 @@ class WorkflowApp(BaseModel):
                 agent_method=agent_method,
                 llm=llm,
                 llm_method=llm_method,
+                include_chat_history=include_chat_history,
+                workflow_app=self,
             )
 
             @functools.wraps(f)
@@ -452,7 +462,7 @@ class WorkflowApp(BaseModel):
             logger.error(f"Failed to start workflow {workflow}: {e}")
             raise
     
-    def get_workflow_state(self, instance_id: str) -> Optional[WorkflowState]:
+    async def monitor_workflow_state(self, instance_id: str) -> Optional[WorkflowState]:
         """
         Retrieves the final state of a workflow instance.
 
@@ -463,7 +473,8 @@ class WorkflowApp(BaseModel):
             Optional[WorkflowState]: The final state of the workflow, or None if not found.
         """
         try:
-            state: WorkflowState = self.wait_for_workflow_completion(
+            state: WorkflowState = await asyncio.to_thread(
+                self.wait_for_workflow_completion,
                 instance_id,
                 fetch_payloads=True,
                 timeout_in_seconds=self.timeout,
@@ -492,13 +503,13 @@ class WorkflowApp(BaseModel):
         It does not return a value but provides visibility into the workflow’s execution status.
         """
         try:
-            logger.info(f"Starting to monitor workflow '{instance_id}'...")
+            logger.info(f"Monitoring workflow '{instance_id}'...")
 
             # Retrieve workflow state
-            state = await asyncio.to_thread(self.get_workflow_state, instance_id)
+            state = await self.monitor_workflow_state(instance_id)
 
             if not state:
-                return  # Error already logged in get_workflow_state
+                return  # Error already logged in gmonitor_workflow_state
 
             workflow_status = WorkflowStatus[state.runtime_status.name] if state.runtime_status.name in WorkflowStatus.__members__ else WorkflowStatus.UNKNOWN
 
@@ -529,7 +540,11 @@ class WorkflowApp(BaseModel):
             instance_id = self.run_workflow(workflow, input=input)
 
             # Retrieve workflow state
-            state = self.get_workflow_state(instance_id)
+            loop = asyncio.get_running_loop()
+            if loop:
+                state = loop.run_until_complete(self.monitor_workflow_state(instance_id))
+            else:
+                state = asyncio.run(self.monitor_workflow_state(instance_id))
 
             if not state:
                 raise RuntimeError(f"Workflow '{instance_id}' not found.")

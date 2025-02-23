@@ -1,10 +1,9 @@
-from floki.agent.workflows.base import AgenticWorkflowService
+from floki.workflow.agentic import AgenticWorkflow
 from floki.types import DaprWorkflowContext, BaseMessage
 from typing import Any, Optional
 from dataclasses import dataclass
 from datetime import timedelta
 from pydantic import BaseModel
-import random
 import logging
 
 logger = logging.getLogger(__name__)
@@ -27,37 +26,37 @@ class ChatLoop:
     message: str
     iteration: int
 
-class RandomOrchestrator(AgenticWorkflowService):
+class RoundRobinOrchestrator(AgenticWorkflow):
     """
-    Implements a random workflow where agents are selected randomly to perform tasks.
-    The workflow iterates through conversations, selecting a random agent at each step.
+    Implements a round-robin workflow where agents take turns performing tasks.
+    The workflow iterates through conversations by selecting agents in a circular order.
 
     Uses `continue_as_new` to persist iteration state.
     """
     def model_post_init(self, __context: Any) -> None:
         """
-        Initializes and configures the random workflow service.
+        Initializes and configures the round-robin workflow service.
         Registers tasks and workflows, then starts the workflow runtime.
         """
         super().model_post_init(__context)
-
-        self.workflow_name = "random_workflow"
+        
+        self.workflow_name = "round_robin_workflow"
 
         # Register workflows and tasks
-        self.workflow(self.random_workflow, name=self.workflow_name)
+        self.workflow(self.round_robin_workflow, name=self.workflow_name)
         # Custom tasks
         self.task(self.process_input)
         self.task(self.broadcast_input_message)
-        self.task(self.select_random_speaker)
+        self.task(self.select_next_speaker)
         self.task(self.trigger_agent)
-
-    def random_workflow(self, ctx: DaprWorkflowContext, input: ChatLoop):
+    
+    def round_robin_workflow(self, ctx: DaprWorkflowContext, input: ChatLoop):
         """
-        Executes a random workflow where agents are selected randomly for interactions.
+        Executes a round-robin workflow where agents interact iteratively.
 
-        Workflow Steps:
+        Steps:
         1. Processes input and broadcasts the initial message.
-        2. Iterates through agents, selecting a random speaker each round.
+        2. Iterates through agents, selecting a speaker each round.
         3. Waits for agent responses or handles timeouts.
         4. Updates the workflow state and continues the loop.
         5. Terminates when max iterations are reached.
@@ -76,11 +75,11 @@ class RandomOrchestrator(AgenticWorkflowService):
         instance_id = ctx.instance_id
 
         if not ctx.is_replaying:
-            logger.info(f"Random workflow iteration {iteration + 1} started (Instance ID: {instance_id}).")
+            logger.info(f"Round-robin iteration {iteration + 1} started (Instance ID: {instance_id}).")
 
         # Check Termination Condition
         if iteration >= self.max_iterations:
-            logger.info(f"Max iterations reached. Ending random workflow (Instance ID: {instance_id}).")
+            logger.info(f"Max iterations reached. Ending round-robin workflow (Instance ID: {instance_id}).")
             return message
 
         # First iteration: Process input and broadcast
@@ -91,11 +90,11 @@ class RandomOrchestrator(AgenticWorkflowService):
             # Broadcast initial message
             yield ctx.call_activity(self.broadcast_input_message, input=message_input)
 
-        # Select a random speaker
-        random_speaker = yield ctx.call_activity(self.select_random_speaker, input={"iteration": iteration})
+        # Select next speaker
+        next_speaker = yield ctx.call_activity(self.select_next_speaker, input={"iteration": iteration})
 
         # Trigger agent
-        yield ctx.call_activity(self.trigger_agent, input={"name": random_speaker, "instance_id": instance_id})
+        yield ctx.call_activity(self.trigger_agent, input={"name": next_speaker, "instance_id": instance_id})
 
         # Wait for response or timeout
         logger.info("Waiting for agent response...")
@@ -127,7 +126,7 @@ class RandomOrchestrator(AgenticWorkflowService):
             dict: Serialized UserMessage with the content.
         """
         return {"role": "user", "content": message}
-
+    
     async def broadcast_input_message(self, **kwargs):
         """
         Broadcasts a message to all agents.
@@ -137,39 +136,28 @@ class RandomOrchestrator(AgenticWorkflowService):
         """
         message = {key: value for key, value in kwargs.items()}
         await self.broadcast_message(message=BaseMessage(**message))
-
-    async def select_random_speaker(self, iteration: int) -> str:
+    
+    async def select_next_speaker(self, iteration: int) -> str:
         """
-        Selects a random speaker, ensuring that a different agent is chosen if possible.
+        Selects the next speaker in round-robin order.
 
         Args:
             iteration (int): The current iteration number.
         Returns:
-            str: The name of the randomly selected agent.
+            str: The name of the selected agent.
         """
         agents_metadata = await self.get_agents_metadata()
         if not agents_metadata:
             logger.warning("No agents available for selection.")
-            raise ValueError("Agents metadata is empty. Cannot select a random speaker.")
+            raise ValueError("Agents metadata is empty. Cannot select next speaker.")
 
         agent_names = list(agents_metadata.keys())
 
-        # Handle single-agent scenarios
-        if len(agent_names) == 1:
-            random_speaker = agent_names[0]
-            logger.info(f"Only one agent available: {random_speaker}. Using the same agent.")
-            return random_speaker
-
-        # Select a random speaker, avoiding repeating the previous speaker when possible
-        previous_speaker = getattr(self, "current_speaker", None)
-        if previous_speaker in agent_names and len(agent_names) > 1:
-            agent_names.remove(previous_speaker)
-
-        random_speaker = random.choice(agent_names)
-        self.current_speaker = random_speaker
-        logger.info(f"{self.name} randomly selected agent {random_speaker} (Iteration: {iteration}).")
-        return random_speaker
-
+        # Determine the next agent in the round-robin order
+        next_speaker = agent_names[iteration % len(agent_names)]
+        logger.info(f"{self.name} selected agent {next_speaker} for iteration {iteration}.")
+        return next_speaker
+    
     async def trigger_agent(self, name: str, instance_id: str) -> None:
         """
         Triggers the specified agent to perform its activity.

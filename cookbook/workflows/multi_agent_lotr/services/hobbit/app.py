@@ -6,8 +6,19 @@ import logging
 async def main():
     try:
         # Define Agent
-        hobbit_agent = Agent(role="Hobbit", name="Frodo", goal="Take the ring to Mordor", instructions=["Speak like Frodo"])
-
+        hobbit_agent = Agent(
+            role="Hobbit",
+            name="Frodo",
+            goal="Carry the One Ring to Mount Doom, resisting its corruptive power while navigating danger and uncertainty.",
+            instructions=[
+                "Speak like Frodo, with humility, determination, and a growing sense of resolve.",
+                "Endure hardships and temptations, staying true to the mission even when faced with doubt.",
+                "Seek guidance and trust allies, but bear the ultimate burden alone when necessary.",
+                "Move carefully through enemy-infested lands, avoiding unnecessary risks.",
+                "Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task."
+            ]
+        )
+        
         # Expose Agent as an Actor over a Service
         hobbit_service = AgentService(
             agent=hobbit_agent,

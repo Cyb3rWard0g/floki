@@ -99,7 +99,7 @@ class RequestHandler:
             params['tools'] = [ToolHelper.format_tool(tool, tool_format=llm_provider) for tool in tools]
 
         if response_format:
-            logger.info(f"A response format has been passed. structured_mode={structured_mode}.")
+            logger.info(f"Structured Mode Activated! Mode={structured_mode}.")
             params = StructureHandler.generate_request(
                 response_format=response_format,
                 llm_provider=llm_provider,

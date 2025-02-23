@@ -102,7 +102,7 @@ class DaprEnabledService(ServiceBase, ABC):
                     publish_metadata=metadata or {}
                 )
             
-            logger.info(f"Message successfully published to topic '{topic_name}' on pub/sub '{pubsub_name}'.")
+            logger.debug(f"Message successfully published to topic '{topic_name}' on pub/sub '{pubsub_name}'.")
             logger.debug(f"Serialized Message: {json_message}, Metadata: {metadata}")
         except Exception as e:
             logger.error(
@@ -146,7 +146,7 @@ class DaprEnabledService(ServiceBase, ABC):
         # Merge additional metadata from kwargs
         metadata = {**base_metadata, **kwargs}
 
-        logger.info(f"{source} preparing to publish '{message_type}' to topic '{topic_name}'.")
+        logger.debug(f"{source} preparing to publish '{message_type}' to topic '{topic_name}'.")
         logger.debug(f"Message: {message_dict}, Metadata: {metadata}")
 
         # Publish the message
@@ -156,3 +156,5 @@ class DaprEnabledService(ServiceBase, ABC):
             message=message_dict,
             metadata=metadata,
         )
+
+        logger.debug(f"{source} published '{message_type}' to topic '{topic_name}'.")
