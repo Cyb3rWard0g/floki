@@ -50,3 +50,15 @@ apps:
   command: ["python3", "app.py"]
   daprGRPCPort: 50009
 
+#- appId: RandomApp
+#  appDirPath: ./services/workflow-random/
+#  appPort: 8009
+#  command: ["python3", "app.py"]
+#  daprGRPCPort: 50009
+
+#- appId: RoundRobinApp
+#  appDirPath: ./services/workflow-roundrobin/
+#  appPort: 8009
+#  command: ["python3", "app.py"]
+#  daprGRPCPort: 50009
+
