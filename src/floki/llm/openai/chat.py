@@ -5,7 +5,7 @@ from floki.types.message import BaseMessage
 from floki.llm.chat import ChatClientBase
 from floki.prompt.prompty import Prompty
 from floki.tool import AgentTool
-from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type, Literal
+from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type, Literal, ClassVar
 from openai.types.chat import ChatCompletionMessage
 from pydantic import BaseModel, Field, model_validator
 from pathlib import Path
@@ -19,6 +19,8 @@ class OpenAIChatClient(OpenAIClientBase, ChatClientBase):
     Combines OpenAI client management with Prompty-specific functionality.
     """
     model: str = Field(default=None, description="Model name to use, e.g., 'gpt-4'.")
+
+    SUPPORTED_STRUCTURED_MODES: ClassVar[set] = {"json", "function_call"}
 
     @model_validator(mode="before")
     def validate_and_initialize(cls, values: Dict[str, Any]) -> Dict[str, Any]:
@@ -114,7 +116,10 @@ class OpenAIChatClient(OpenAIClientBase, ChatClientBase):
         Returns:
             Union[Iterator[Dict[str, Any]], Dict[str, Any]]: The chat completion response(s).
         """
-
+        
+        if structured_mode not in self.SUPPORTED_STRUCTURED_MODES:
+            raise ValueError(f"Invalid structured_mode '{structured_mode}'. Must be one of {self.SUPPORTED_STRUCTURED_MODES}.")
+        
         # If input_data is provided, check for a prompt_template
         if input_data:
             if not self.prompt_template:
