@@ -44,7 +44,7 @@ class ToolCallAgent(AgentBase):
 
         # Format messages; construct_messages already includes chat history.
         messages = self.construct_messages(input_data or {})
-
+        
         # Get Last User Message
         user_message = self.get_last_user_message(messages)
         
