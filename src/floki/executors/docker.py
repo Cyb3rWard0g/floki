@@ -1,5 +1,4 @@
 from floki.types.executor import ExecutionRequest, ExecutionResult
-from docker.errors import DockerException, APIError, NotFound
 from typing import List, Any, Optional, Union, Literal
 from floki.executors import CodeExecutorBase
 from pydantic import Field
@@ -37,6 +36,7 @@ class DockerCodeExecutor(CodeExecutorBase):
         """Initializes the Docker client and ensures a reusable execution container is ready."""
         try:
             from docker import DockerClient
+            from docker.errors import DockerException
         except ImportError as e:
             raise ImportError("Install 'docker' package with 'pip install docker'.") from e
 
@@ -64,6 +64,11 @@ class DockerCodeExecutor(CodeExecutorBase):
     def ensure_container(self) -> None:
         """Ensures that the execution container exists. If not, it creates and starts one."""
         try:
+            from docker.errors import NotFound
+        except ImportError as e:
+            raise ImportError("Install 'docker' package with 'pip install docker'.") from e
+        
+        try:
             self.execution_container = self.docker_client.containers.get(self.container_name)
             logger.info(f"Reusing existing container: {self.container_name}")
         except NotFound:
@@ -74,6 +79,10 @@ class DockerCodeExecutor(CodeExecutorBase):
 
     def create_container(self) -> None:
         """Creates a reusable Docker container."""
+        try:
+            from docker.errors import DockerException, APIError
+        except ImportError as e:
+            raise ImportError("Install 'docker' package with 'pip install docker'.") from e
         try:
             self.execution_container = self.docker_client.containers.create(
                 self.image,
