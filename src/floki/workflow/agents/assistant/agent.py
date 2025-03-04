@@ -77,9 +77,6 @@ class AssistantAgent(AgentServiceBase):
 
             # Store in state, converting to JSON only if necessary
             self.state["instances"].setdefault(instance_id, workflow_entry.model_dump(mode="json"))
-            
-            # Update Initial Message History
-            yield ctx.call_activity(self.update_message_history, input={"instance_id": instance_id, "task": task})
 
             if not ctx.is_replaying:
                 logger.info(f"Initial message from {self.state["instances"][instance_id]["source_agent"]} -> {self.name}")
@@ -94,7 +91,8 @@ class AssistantAgent(AgentServiceBase):
         response_message = yield ctx.call_activity(self.get_response_message, input={"response" : response})
 
         if not ctx.is_replaying:
-            self.text_formatter.print_message(response_message)
+            # Create a temporary dictionary with "name" added only if missing
+            self.text_formatter.print_message({**response_message, "name": response_message.get("name", self.name)})
 
         # Step 4: Extract Finish Reason
         finish_reason = yield ctx.call_activity(self.get_finish_reason, input={"response" : response})
@@ -102,25 +100,29 @@ class AssistantAgent(AgentServiceBase):
         # Step 5: Choose execution path based on LLM response
         if finish_reason == "tool_calls":     
             if not ctx.is_replaying:
-                logger.info(f"Processing tools..")
+                logger.info(f"Tool calls detected in LLM response, extracting and preparing for execution..")
             
             # Store the response message in tool history for tracking
             self.tool_history.append(response_message)
 
-            # Retrieve tool calls from the response using an activity function
-            tool_calls = yield ctx.call_activity(self.get_tool_calls, input={"response" : response})
+            # Retrieve the list of tool calls extracted from the LLM response
+            tool_calls = yield ctx.call_activity(self.get_tool_calls, input={"response": response})
 
-            # Execute tools in parallel if available
+            # Execute tool calls in parallel if available
             if tool_calls:
-                parallel_tasks = [ctx.call_activity(self.execute_tool, input={"tool_call": tool_call}) for tool_call in tool_calls]
+                if not ctx.is_replaying:
+                    logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel..")
+
+                parallel_tasks = [
+                    ctx.call_activity(self.execute_tool, input={"tool_call": tool_call})
+                    for tool_call in tool_calls
+                ]
                 yield self.when_all(parallel_tasks)
-        
         else:
             if not ctx.is_replaying:
-                logger.info(f"Agent responding directly..")
+                logger.info(f"Agent generating response without tool execution..")
             
-            # No tool calls → Store message in history and clear tools
-            self.memory.add_message(response_message)
+            # No Tool Calls → Clear tools
             self.tool_history.clear()
 
         # Step 6: Determine if Workflow Should Continue
@@ -139,20 +141,21 @@ class AssistantAgent(AgentServiceBase):
             
             else:
                 verdict = "model hit a natural stop point."
-
-            # Step 7: Respond to source agent if available
+            
+            # Step 8
             if source_agent:
+                # Broadcasting Response to all agents
+                yield ctx.call_activity(self.broadcast_message_to_agents, input={"message": response_message})
+
+                # Respond to source agent if available
                 if not ctx.is_replaying:
                     logger.info(f"Sending response to {source_agent}..")
 
-                yield ctx.call_activity(self.send_response_back, input={
-                    "response": response_message,
-                    "target_agent": source_agent,
-                    "target_instance_id": source_workflow_instance_id
-                })
+                yield ctx.call_activity(self.send_response_back, input={"response": response_message, "target_agent": source_agent, "target_instance_id": source_workflow_instance_id})
 
             # Step 8: Share Final Message
-            yield ctx.call_activity(self.finish_workflow, input={"instance_id": instance_id, "summary": response_message["content"]})
+            yield ctx.call_activity(self.finish_workflow, input={"instance_id": instance_id, "message": response_message})
+            
             if not ctx.is_replaying:
                 logger.info(f"Workflow {instance_id} has been finalized with verdict: {verdict}")
 
@@ -161,30 +164,11 @@ class AssistantAgent(AgentServiceBase):
         # Step 7: Continue Workflow Execution
         message.update({"task": None, "iteration": next_iteration_count})
         ctx.continue_as_new(message)
-    
-    @task
-    async def update_message_history(self, instance_id: str, task: str):
-        """
-        Updates the message history in the workflow state by extracting the latest user message.
-
-        Args:
-            instance_id (str): The unique identifier of the workflow instance.
-            task (str): The task input used to construct the message history.
-        """
-        # Construct prompt messages
-        messages = self.construct_messages(task or {})
-
-        # Get the most recent user message with trimmed content
-        user_message = next((msg | {"content": msg["content"].strip()} for msg in reversed(messages) if msg.get("role") == "user"), None)
-
-        # Update workflow state with the user message if found
-        if user_message:
-            await self.update_workflow_state(instance_id=instance_id, message=user_message)
 
     @task
     async def generate_response(self, instance_id: str, task: Union[str, Dict[str, Any]] = None) -> ChatCompletion:
         """
-        Generates a response using an AI model based on the provided task input.
+        Generates a response using a language model based on the provided task input.
 
         Args:
             instance_id (str): The unique identifier of the workflow instance.
@@ -194,6 +178,11 @@ class AssistantAgent(AgentServiceBase):
         Returns:
             ChatCompletion: The generated AI response encapsulated in a ChatCompletion object.
         """
+        # Store message in workflow state and local memory
+        if task:
+            task_message = {"role": "user", "content": task}
+            await self.update_workflow_state(instance_id=instance_id, message=task_message)
+        
         # Contruct prompt messages
         messages = self.construct_messages(task or {})
 
@@ -203,14 +192,11 @@ class AssistantAgent(AgentServiceBase):
         # Generate Tool Calls
         response: ChatCompletion = self.llm.generate(messages=messages, tools=self.tools, tool_choice=self.tool_choice)
 
-        # Update State
-        await self.update_workflow_state(instance_id=instance_id, message=response.get_message())
-
         # Return chat completion as a dictionary
         return response.model_dump()
         
     @task
-    def get_response_message(self, response: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    def get_response_message(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """
         Extracts the response message from the first choice in the LLM response.
 
@@ -218,16 +204,10 @@ class AssistantAgent(AgentServiceBase):
             response (Dict[str, Any]): The response dictionary from the LLM, expected to contain a "choices" key.
 
         Returns:
-            Optional[Dict[str, Any]]: The extracted response message if available, otherwise None.
+            Dict[str, Any]: The extracted response message with the agent's name added.
         """
         choices = response.get("choices", [])
-
-        if not choices:
-            logger.warning("No choices found in LLM response.")
-            return None
-
-        response_message = choices[0].get("message")
-
+        response_message = choices[0].get("message", {})
         return response_message
     
     @task
@@ -331,6 +311,22 @@ class AssistantAgent(AgentServiceBase):
             raise AgentError(f"Error executing tool '{function_name}': {e}") from e
     
     @task
+    async def broadcast_message_to_agents(self, message: Dict[str, Any]):
+        """
+        Broadcasts it to all registered agents.
+
+        Args:
+            message (Dict[str, Any]): A message to append to the workflow state and broadcast to all agents.
+        """
+        # Format message for broadcasting
+        message["role"] = "user"
+        message["name"] = self.name
+        response_message = BaseMessage(**message)
+
+        # Broadcast message to all agents
+        await self.broadcast_message(message=response_message)
+    
+    @task
     async def send_response_back(self, response: Dict[str, Any], target_agent: str, target_instance_id: str):
         """
         Sends a task response back to a target agent within a workflow.
@@ -346,25 +342,28 @@ class AssistantAgent(AgentServiceBase):
         # Prepare metadata for routing
         additional_metadata = {"event_name": "AgentTaskResponse", "workflow_instance_id": target_instance_id}
 
-        # Adding agent name
+        # Format Response
+        response["role"] = "user"
         response["name"] = self.name
-
-        # Validate and wrap response
         agent_response = AgentTaskResponse(**response)
 
         # Send the message to the target agent
         await self.send_message_to_agent(name=target_agent, message=agent_response, **additional_metadata)
     
     @task
-    async def finish_workflow(self, instance_id: str, summary: str):
+    async def finish_workflow(self, instance_id: str, message: Dict[str, Any]):
         """
-        Finalizes the workflow by storing the provided summary as the final output.
+        Finalizes the workflow by storing the provided message as the final output.
 
         Args:
             instance_id (str): The unique identifier of the workflow instance.
-            summary (str): The final summary to be stored in the workflow state.
+            summary (Dict[str, Any]): The final summary to be stored in the workflow state.
         """
-        await self.update_workflow_state(instance_id=instance_id, final_output=summary)
+        # Store message in workflow state
+        await self.update_workflow_state(instance_id=instance_id, message=message)
+
+        # Store final output
+        await self.update_workflow_state(instance_id=instance_id, final_output=message['content'])
     
     async def update_workflow_state(self, instance_id: str, message: Optional[Dict[str, Any]] = None, final_output: Optional[str] = None):
         """
