@@ -107,43 +107,47 @@ Now, let’s get to the exciting part! `Tasks` in `Floki` build on the concept o
 You can also use function arguments to pass variables to the prompt, letting you dynamically format the prompt before it’s sent to the text generation endpoint. This makes it simple to implement workflows that follow the [Dapr Task chaining pattern](https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-patterns/#task-chaining), just like in the earlier example, but with even more flexibility.
 
 ```python
-from floki import WorkflowApp
+from floki.workflow import WorkflowApp, workflow, task
 from floki.types import DaprWorkflowContext
 from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
-
-# Initialize the WorkflowApp
-wfapp = WorkflowApp()
+import logging
 
 # Define Workflow logic
-@wfapp.workflow(name='lotr_workflow')
+@workflow(name='lotr_workflow')
 def task_chain_workflow(ctx: DaprWorkflowContext):
     result1 = yield ctx.call_activity(get_character)
     result2 = yield ctx.call_activity(get_line, input={"character": result1})
     return result2
 
-@wfapp.task(description="""
+@task(description="""
     Pick a random character from The Lord of the Rings\n
-    and respond with the character's name only
+    and respond with the character's name ONLY
 """)
 def get_character() -> str:
     pass
 
-@wfapp.task(description="What is a famous line by {character}",)
+@task(description="What is a famous line by {character}",)
 def get_line(character: str) -> str:
     pass
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+
+    # Load environment variables
+    load_dotenv()
+
+    # Initialize the WorkflowApp
+    wfapp = WorkflowApp()
+
+    # Run workflow
     results = wfapp.run_and_monitor_workflow(task_chain_workflow)
-    print(f"Famous Line: {results}")
+    print(results)
 ```
 
 Run the workflow with the following command:
 
 ```bash
-dapr run --app-id flokillmmwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_openai_floki_llm_request.py
+dapr run --app-id flokillmmwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_floki_oai_llm_request.py
 ```
 
 ![](../../img/workflows_floki_llm_request.png)

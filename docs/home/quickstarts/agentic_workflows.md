@@ -12,9 +12,170 @@ In `Floki`, agentic workflows leverage LLM-based tasks, reasoning loop patterns,
 !!! tip
     We will demonstrate this concept using the [Multi-Agent Workflow Guide](https://github.com/Cyb3rWard0g/floki/tree/main/cookbook/workflows/multi_agent_lotr) from our Cookbook, which outlines a step-by-step guide to implementing a basic agentic workflow.
 
-## Agents as Services
+## Agents as Services: Dapr Actors and Dapr Workflows
 
-In `Floki`, agents can be exposed as services, making them reusable, modular, and easy to integrate into agentic workflows. Each agent runs as a microservice, wrapped in a [Dapr-enabled FastAPI server](https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/). This design allows agents to operate independently while communicating through [Dapr’s pub/sub](https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-overview/) messaging and interacting with state stores or other services.
+In `Floki`, agents can be implemented using [Dapr Actors](https://docs.dapr.io/developing-applications/building-blocks/actors/actors-overview/) or [Dapr Workflows](https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/), both of which are exposed as microservices via [FastAPI servers](https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/).
+
+### 1. Agents as Dapr Actors (Encapsulating Agent Logic)
+
+Agents in Floki can be wrapped in Dapr Virtual Actors, providing stateful, autonomous, and event-driven execution.
+
+✅ Encapsulates agent logic as an isolated, stateful entity.
+✅ Maintains its own identity and state across invocations.
+✅ Interacts via event-driven messaging using Dapr’s pub/sub.
+✅ Can be triggered on demand or listen for specific events.
+
+In `Floki`, agents are typically wrapped as [Dapr Actors](https://docs.dapr.io/developing-applications/building-blocks/actors/actors-overview/) to modularize agent logic while keeping state persistence.
+
+**Example: Wrapping an Agent as a Dapr Actor**
+
+```python
+from floki import Agent, AgentActorService
+from dotenv import load_dotenv
+import asyncio
+import logging
+
+async def main():
+    try:
+        # Define Agent
+        hobbit_agent = Agent(
+            role="Hobbit",
+            name="Frodo",
+            goal="Carry the One Ring to Mount Doom, resisting its corruptive power while navigating danger and uncertainty.",
+            instructions=[
+                "Speak like Frodo, with humility, determination, and a growing sense of resolve.",
+                "Endure hardships and temptations, staying true to the mission even when faced with doubt.",
+                "Seek guidance and trust allies, but bear the ultimate burden alone when necessary.",
+                "Move carefully through enemy-infested lands, avoiding unnecessary risks.",
+                "Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task."
+            ]
+        )
+        
+        # Expose Agent as an Actor over a Service
+        hobbit_service = AgentActorService(
+            agent=hobbit_agent,
+            message_bus_name="messagepubsub",
+            agents_registry_store_name="agentsregistrystore",
+            agents_registry_key="agents_registry",
+            service_port=8001,
+            daprGrpcPort=50001
+        )
+
+        await hobbit_service.start()
+    except Exception as e:
+        print(f"Error starting service: {e}")
+
+if __name__ == "__main__":
+    load_dotenv()
+
+    logging.basicConfig(level=logging.INFO)
+
+    asyncio.run(main())
+```
+
+In this approach, each agent is independently stateful, and can react to events, maintain context, and interact with the message bus dynamically.
+
+### 2. Agents as Dapr Workflows (Orchestration, Complex Execution)
+Instead of wrapping an agent inside an actor, [Dapr Workflows](https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/) define the structured execution of agent behaviors, reasoning loops, and tool selection. Workflows allow agents to:
+
+✅ Define complex execution sequences instead of just reacting to events.
+✅ Integrate with message buses to listen and act on real-time inputs.
+✅ Orchestrate multi-step reasoning, retrieval-augmented generation (RAG), and tool use.
+✅ Best suited for goal-driven, structured, and iterative decision-making workflows.
+
+🚀 Floki uses Dapr Workflows for orchestration and complex multi-agent collaboration.
+
+**Example: An Agent as a Dapr Workflow**
+
+```python
+from floki import AssistantAgent
+from dotenv import load_dotenv
+import asyncio
+import logging
+
+async def main():
+    try:
+        # Define Agent
+        wizard_service = AssistantAgent(
+            name="Gandalf",
+            role="Wizard",
+            goal="Guide the Fellowship with wisdom and strategy, using magic and insight to ensure the downfall of Sauron.",
+            instructions=[
+                "Speak like Gandalf, with wisdom, patience, and a touch of mystery.",
+                "Provide strategic counsel, always considering the long-term consequences of actions.",
+                "Use magic sparingly, applying it when necessary to guide or protect.",
+                "Encourage allies to find strength within themselves rather than relying solely on your power.",
+                "Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task."
+            ],
+            message_bus_name="messagepubsub",
+            state_store_name="agenticworkflowstate",
+            state_key="workflow_state",
+            agents_registry_store_name="agentsregistrystore",
+            agents_registry_key="agents_registry",
+            service_port=8002,
+            daprGrpcPort=50002
+        )
+
+        await wizard_service.start()
+    except Exception as e:
+        print(f"Error starting service: {e}")
+
+if __name__ == "__main__":
+    load_dotenv()
+
+    logging.basicConfig(level=logging.INFO)
+    
+    asyncio.run(main())
+```
+
+Here, `Gandalf` is an `AssistantAgent` implemented as a workflow, meaning it executes structured reasoning, plans actions, and integrates tools within a managed workflow execution loop.
+
+### 3. How Floki Uses Dapr Workflows for Orchestration
+While Dapr Workflows build on Dapr Actors, they provide an abstraction for orchestrating multiple agents and interactions. In Floki, the orchestrator itself is a Dapr Workflow, which:
+
+✅ Coordinates execution of agentic workflows (LLM-driven or rule-based).
+✅ Delegates tasks to agents implemented as either Dapr Actors or other workflows.
+✅ Manages reasoning loops, plan adaptation, and error handling dynamically.
+
+🚀 Floki’s default orchestrator is a Dapr Workflow that interacts with both agent actors and agent workflows.
+
+**Example: The Orchestrator as a Dapr Workflow**
+
+```python
+from floki import LLMOrchestrator
+from dotenv import load_dotenv
+import asyncio
+import logging
+
+async def main():
+    try:
+        agentic_orchestrator = LLMOrchestrator(
+            name="Orchestrator",
+            message_bus_name="messagepubsub",
+            state_store_name="agenticworkflowstate",
+            state_key="workflow_state",
+            agents_registry_store_name="agentsregistrystore",
+            agents_registry_key="agents_registry",
+            service_port=8009,
+            daprGrpcPort=50009,
+            max_iterations=25
+        )
+
+        await agentic_orchestrator.start()
+    except Exception as e:
+        print(f"Error starting service: {e}")
+
+if __name__ == "__main__":
+    load_dotenv()
+
+    logging.basicConfig(level=logging.INFO)
+    
+    asyncio.run(main())
+```
+
+This orchestrator acts as a central controller, ensuring that agentic workflows and actors communicate effectively, execute tasks in order, and handle iterative reasoning loops.
+
+## Structuring A Multi-Agent Project
 
 The way to structure such a project is straightforward. We organize our services into a directory that contains individual folders for each agent, along with a `components` directory for Dapr resources configurations. Each agent service includes its own app.py file, where the FastAPI server and the agent logic are defined.
 
@@ -56,7 +217,7 @@ services/                  # Directory for agent services
 Create the `app.py` script and provide the following information.
 
 ```python
-from floki import Agent, AgentService
+from floki import Agent, AgentActorService
 from dotenv import load_dotenv
 import asyncio
 import logging
@@ -78,11 +239,12 @@ async def main():
         )
         
         # Expose Agent as an Actor over a Service
-        hobbit_service = AgentService(
+        hobbit_service = AgentActorService(
             agent=hobbit_agent,
             message_bus_name="messagepubsub",
-            agents_state_store_name="agentstatestore",
-            port=8001,
+            agents_registry_store_name="agentsregistrystore",
+            agents_registry_key="agents_registry",
+            service_port=8001,
             daprGrpcPort=50001
         )
 
@@ -103,63 +265,10 @@ Now, you can define multiple services following this format, but it's essential 
 Key Considerations:
 
 * Ensure the `message_bus_name` matches the `pub/sub` component name in your `pubsub.yaml` file.
-* Verify the `agents_state_store_name` matches the state store component defined in your `agentstate.yaml` file.
-* Increment the port for each new agent service (e.g., 8001, 8002, 8003).
+* Verify the `agents_registry_store_name` matches the state store component defined in your `agentstate.yaml` file.
+* Increment the `service_port` for each new agent service (e.g., 8001, 8002, 8003).
 * Similarly, increment the `daprGrpcPort` for each service (e.g., 50001, 50002, 50003) to avoid conflicts.
 * Customize the Agent parameters (`role`, `name`, `goal`, and `instructions`) to match the behavior you want for each service.
-
-## The Agentic Workflow Service
-
-The Agentic Workflow Service in `Floki` extends workflows to orchestrate communication among agents. It allows you to send messages to agents to trigger their participation and monitors a shared message bus to listen for all messages being passed. This enables dynamic collaboration and task distribution among agents.
-
-Types of Agentic Workflows:
-
-### Orchestrators
-
-At the moment, `Floki` uses `Agentic Workflow` services to describe the orchestrator of an agentic system. We can also define the `Agent` itself as an agentic workflow (more on this coming soon...)
-
-* **Random**: Distributes tasks to agents randomly, ensuring a non-deterministic selection of participating agents for each task.
-* **RoundRobin**: Cycles through agents in a fixed order, ensuring each agent has an equal opportunity to participate in tasks.
-* **LLM-based**: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.
-
-Next, we’ll define an `LLM Orchestrator` to demonstrate how this concept can be implemented.
-
-```python
-from floki import LLMOrchestrator
-from dotenv import load_dotenv
-import asyncio
-import logging
-
-async def main():
-    try:
-        agentic_orchestrator = LLMOrchestrator(
-            name="Orchestrator",
-            message_bus_name="messagepubsub",
-            agents_registry_store_name="agentstatestore",
-            state_store_name="agenticworkflowstate",
-            port=8008,
-            daprGrpcPort=50008,
-            max_iterations=25
-        )
-
-        await agentic_orchestrator.start()
-    except Exception as e:
-        print(f"Error starting service: {e}")
-
-if __name__ == "__main__":
-    load_dotenv()
-
-    logging.basicConfig(level=logging.INFO)
-    
-    asyncio.run(main())
-```
-
-Unlike `Agents as Services`, the `Agentic Workflow Service` does not require an agent parameter since it orchestrates communication among multiple agents rather than representing a single agent. Instead, the configuration focuses on workflow-specific parameters:
-
-* **Message Bus Name** (`message_bus_name`): Defines the shared message bus that enables communication between all agents. Each agent publishes and subscribes to its own designated topic within this bus, facilitating real-time event-driven interactions.
-* **Agents Registry Store Name** (`agents_registry_store_name`): Specifies the state store where agent metadata is registered. Every time an agent joins or updates its status, this registry ensures the orchestrator is aware of all available agents and their capabilities.
-* **Workflow State Store Name** (`state_store_name`): Stores the workflow’s structured execution data, including the task plan, message exchanges, and task completion records. This state is retrieved by tasks and can be used to provide context when retrying operations. While Dapr manages the underlying workflow state for execution and fault tolerance, this store ensures that relevant contextual data is preserved for workflow decisions and agent interactions.
-* **Max Iterations** (`max_iterations`): Defines the maximum number of iterations the workflow will execute before terminating. This prevents infinite loops and ensures controlled task execution.
 
 ## The Multi-App Run template file
 
@@ -216,9 +325,9 @@ apps:
 
 - appId: WorkflowApp
   appDirPath: ./services/workflow-llm/
-  appPort: 8008
+  appPort: 8009
   command: ["python3", "app.py"]
-  daprGRPCPort: 50008
+  daprGRPCPort: 50009
 ```
 
 ## Starting All Service Servers
@@ -257,9 +366,9 @@ Once all services are running, you can initiate the workflow by making an HTTP P
 Here’s an example of how to start the workflow using `curl`:
 
 ```bash
-curl -i -X POST http://localhost:8004/RunWorkflow \
+curl -i -X POST http://localhost:8009/RunWorkflow \
     -H "Content-Type: application/json" \
-    -d '{"message": "Take the Ring to Mordor!"}'
+    -d '{"task": "Lets solve the riddle to open the Doors of Durin and enter Moria."}'
 ```
 
 ```
@@ -274,7 +383,7 @@ content-type: application/json
 
 In this example:
 
-* The request is sent to the Agentic Workflow Service running on port `8008`.
+* The request is sent to the Agentic Workflow Service running on port `8009`.
 * The message parameter is passed as input to the `LLM Workflow`, which is then used to generate the plan and trigger the agentic workflow.
 * This command demonstrates how to interact with the Agentic Workflow Service to kick off a new workflow.
 
@@ -329,9 +438,9 @@ You can easily switch to a different `Orchestrator` type by updating the `dapr.y
 ```yaml
 - appId: WorkflowApp
   appDirPath: ./services/workflow-random/
-  appPort: 8008
+  appPort: 8009
   command: ["python3", "app.py"]
-  daprGRPCPort: 50008
+  daprGRPCPort: 50009
 ```
 
 ### Reset Redis Database
