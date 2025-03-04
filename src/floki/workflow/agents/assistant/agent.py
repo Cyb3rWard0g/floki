@@ -17,10 +17,15 @@ logger = logging.getLogger(__name__)
 
 class AssistantAgent(AgentServiceBase):
     """
-    Orchestrates the execution of code extracted from user messages.
-    Uses agentic workflows to iterate and optimize execution.
-    """
+    A conversational AI agent that responds to user messages, engages in discussions, 
+    and dynamically utilizes external tools when needed. 
 
+    The AssistantAgent follows an agentic workflow, iterating on responses based on 
+    contextual understanding, reasoning, and tool-assisted execution. It ensures 
+    meaningful interactions by selecting the right tools, generating relevant responses, 
+    and refining outputs through iterative feedback loops.
+    """
+    
     tool_history: List[ToolMessage] = Field(default_factory=list, description="Executed tool calls during the conversation.")
     tool_choice: Optional[str] = Field(default=None, description="Strategy for selecting tools ('auto', 'required', 'none'). Defaults to 'auto' if tools are provided.")
 
@@ -59,9 +64,9 @@ class AssistantAgent(AgentServiceBase):
             # Ensure "instances" key exists
             self.state.setdefault("instances", {})
 
-            # Extract workflow metadata with defaults
-            source_agent = metadata.get("source", "unknown")
-            source_workflow_instance_id = metadata.get("headers", {}).get("workflow_instance_id", "unknown_instance")
+            # Extract workflow metadata with proper defaults
+            source_agent = metadata.get("source") or None
+            source_workflow_instance_id = metadata.get("headers", {}).get("workflow_instance_id") or None
 
             # Create a new workflow entry
             workflow_entry = AssistantWorkflowEntry(
@@ -88,8 +93,8 @@ class AssistantAgent(AgentServiceBase):
         response = yield ctx.call_activity(self.generate_response, input={"instance_id": instance_id, "task": task})
         response_message = yield ctx.call_activity(self.get_response_message, input={"response" : response})
 
-        #if not ctx.is_replaying:
-            #self.text_formatter.print_message(response_message)
+        if not ctx.is_replaying:
+            self.text_formatter.print_message(response_message)
 
         # Step 4: Extract Finish Reason
         finish_reason = yield ctx.call_activity(self.get_finish_reason, input={"response" : response})
@@ -135,15 +140,16 @@ class AssistantAgent(AgentServiceBase):
             else:
                 verdict = "model hit a natural stop point."
 
-            if not ctx.is_replaying:
-                logger.info(f"Sending response to {source_agent}..")
+            # Step 7: Respond to source agent if available
+            if source_agent:
+                if not ctx.is_replaying:
+                    logger.info(f"Sending response to {source_agent}..")
 
-            # Step 7: Respond to source agent
-            yield ctx.call_activity(self.send_response_back, input={
-                "response": response_message,
-                "target_agent": source_agent,
-                "target_instance_id": source_workflow_instance_id
-            })
+                yield ctx.call_activity(self.send_response_back, input={
+                    "response": response_message,
+                    "target_agent": source_agent,
+                    "target_instance_id": source_workflow_instance_id
+                })
 
             # Step 8: Share Final Message
             yield ctx.call_activity(self.finish_workflow, input={"instance_id": instance_id, "summary": response_message["content"]})
