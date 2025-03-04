@@ -1,4 +1,4 @@
-from typing import Union, Dict, Any, Optional, Iterable, List, Iterator, Type, Literal
+from typing import Union, Dict, Any, Optional, Iterable, List, Iterator, Type
 from floki.prompt.base import PromptTemplateBase
 from floki.prompt.prompty import Prompty
 from pydantic import BaseModel, Field
