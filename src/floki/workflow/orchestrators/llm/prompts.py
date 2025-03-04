@@ -13,10 +13,14 @@ We need to develop a structured, **logically ordered** plan to accomplish the fo
 4. **Do not introduce additional roles, skills, or external resources** outside of the given team.
 5. **Use clear and precise descriptions** for each step, focusing on **what** needs to be done rather than **who** does it.
 6. **Avoid unnecessary steps or excessive granularity**. Keep the breakdown clear and efficient.
-7. **Maintain a natural task flow** where each step logically follows the previous one.
-8. **Each step must have a `status` field** to track progress (Initially all set to `not_started`).
-9. **Sub-steps should be included only if a step requires multiple distinct actions.**
-10. **Focus only on structuring the task execution**, NOT on assigning agents at this stage.
+7. **If a task involves both code generation and execution, structure the plan as follows:**
+   - **Code Generation Step:** Describe what code needs to be generated, specifying language and functionality.
+   - **Code Execution Step:** If execution is required, describe how it should be performed separately.
+   - **Feedback Handling Step:** If execution results need analysis, include a step for refining the code.
+8. **Maintain a natural task flow** where each step logically follows the previous one.
+9. **Each step must have a `status` field** to track progress (Initially all set to `not_started`).
+10. **Sub-steps should be included only if a step requires multiple distinct actions.**
+11. **Focus only on structuring the task execution**, NOT on assigning agents at this stage.
 
 ### Expected Output Format (JSON Schema):
 {plan_schema}
