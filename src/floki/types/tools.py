@@ -1,29 +1,24 @@
-from pydantic import BaseModel, field_validator, ValidationInfo
+from pydantic import BaseModel, Field, field_validator, ValidationInfo
 from typing import Dict, Literal, Optional, List
 
 class OAIFunctionDefinition(BaseModel):
     """
     Represents a callable function in the OpenAI API format.
-
-    Attributes:
-        name (str): The name of the function.
-        description (str): A detailed description of what the function does.
-        parameters (Dict): A dictionary describing the parameters that the function accepts.
+    
+    This class provides the structure required to define a function that the OpenAI API can call.
+    It includes the function's name, a detailed description, and a dictionary specifying its parameters.
     """
-    name: str
-    description: str
-    parameters: Dict
+
+    name: str = Field(..., description="The name of the function.")
+    description: str = Field(..., description="A detailed description of what the function does.")
+    parameters: Dict = Field(..., description="A dictionary describing the parameters that the function accepts.")
+
 
 class OAIToolDefinition(BaseModel):
-    """
-    Represents a tool (callable function) in the OpenAI API format. This can be a function, code interpreter, or file search tool.
+    """Represents a tool in the OpenAI API format, such as a function, code interpreter, or file search."""
 
-    Attributes:
-        type (Literal["function", "code_interpreter", "file_search"]): The type of the tool.
-        function (Optional[OAIBaseFunctionDefinition]): The function definition, required if type is 'function'.
-    """
-    type: Literal["function", "code_interpreter", "file_search"]
-    function: Optional[OAIFunctionDefinition] = None
+    type: Literal["function", "code_interpreter", "file_search"] = Field(..., description="Type of the tool.")
+    function: Optional[OAIFunctionDefinition] = Field(None, description="Function definition, required if type is 'function'.")
 
     @field_validator('function')
     def check_function_requirements(cls, v, info: ValidationInfo):
@@ -32,36 +27,20 @@ class OAIToolDefinition(BaseModel):
         return v
 
 class ClaudeToolDefinition(BaseModel):
-    """
-    Represents a tool (callable function) in the Anthropic's Claude API format, suitable for integration with Claude's API services.
+    """Represents a callable function in the Anthropic Claude API format."""
 
-    Attributes:
-        name (str): The name of the function.
-        description (str): A description of the function's purpose and usage.
-        input_schema (Dict): A dictionary defining the input schema for the function.
-    """
-    name: str
-    description: str
-    input_schema: Dict
+    name: str = Field(..., description="Name of the function.")
+    description: str = Field(..., description="Description of the function's purpose and usage.")
+    input_schema: Dict = Field(..., description="Input schema defining function parameters.")
 
 class GeminiFunctionDefinition(BaseModel):
-    """
-    Represents a callable function in the Google's Gemini API format.
+    """Represents a callable function in the Google Gemini API format."""
 
-    Attributes:
-        name (str): The name of the function to call. Must start with a letter or an underscore. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
-        description (str): The description and purpose of the function. The model uses this to decide how and whether to call the function. For the best results, we recommend that you include a description.
-        parameters (Dict): Describes the parameters of the function in the OpenAPI JSON Schema Object format: OpenAPI 3.0 specification.
-    """
-    name: str
-    description: str
-    parameters: Dict
+    name: str = Field(..., description="Function name (a-z, A-Z, 0-9, underscores, dashes, max length 64).")
+    description: str = Field(..., description="Purpose of the function, used by the model to decide invocation.")
+    parameters: Dict = Field(..., description="Function parameters in OpenAPI 3.0 JSON Schema format.")
 
 class GeminiToolDefinition(BaseModel):
-    """
-    Represents a tool (callable function) in the Google's Gemini API format, suitable for integration with Gemini's API services.
+    """Represents a tool in the Google Gemini API format for function declaration."""
 
-    Attributes:
-        function_declarations (List): A structured representation of a function declaration as defined by the OpenAPI 3.0 specification that represents a function the model may generate JSON inputs for.
-    """
-    function_declarations: List[GeminiFunctionDefinition]
+    function_declarations: List[GeminiFunctionDefinition] = Field(..., description="Structured representation of function declarations per OpenAPI 3.0.")
