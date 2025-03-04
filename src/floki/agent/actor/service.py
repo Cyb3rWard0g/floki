@@ -1,14 +1,16 @@
 from dapr.actor.runtime.config import ActorRuntimeConfig, ActorTypeConfig, ActorReentrancyConfig
+from dapr.clients.grpc._response import StateResponse
 from dapr.actor.runtime.runtime import ActorRuntime
-from dapr.ext.fastapi import DaprActor
 from dapr.actor import ActorProxy, ActorId
+from dapr.aio.clients import DaprClient
+from dapr.ext.fastapi import DaprActor
 from fastapi import FastAPI, Depends, HTTPException, Request, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from floki.agent.services.messaging import parse_cloudevent
-from floki.storage.daprstores.statestore import DaprStateStore
+from floki.messaging import parse_cloudevent
 from floki.agent.actor import AgentActorBase, AgentActorInterface
-from floki.service.fastapi import DaprEnabledService
+from floki.service.fastapi import DaprFastAPIServer
+from floki.messaging import DaprPubSub
 from floki.types.agent import AgentActorMessage
 from floki.agent import AgentBase
 from pydantic import BaseModel, Field, model_validator, ConfigDict
@@ -21,7 +23,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class AgentServiceBase(DaprEnabledService):
+class AgentActorServiceBase(DaprFastAPIServer, DaprPubSub):
     """
     A Pydantic-based class for managing services and exposing FastAPI routes with Dapr pub/sub and actor support.
     """
@@ -29,8 +31,8 @@ class AgentServiceBase(DaprEnabledService):
     agent: AgentBase
     agent_topic_name: Optional[str] = Field(None, description="The topic name dedicated to this specific agent, derived from the agent's name if not provided.")
     broadcast_topic_name: str = Field("beacon_channel", description="The default topic used for broadcasting messages to all agents.")
-    task_results_topic_name: Optional[str] = Field("task_results_channel", description="The default topic used for sending the results of a task executed by an agent.")
-    agents_state_store_name: str = Field(..., description="The name of the Dapr state store component used to store and share agent metadata centrally.")
+    agents_registry_store_name: str = Field(..., description="The name of the Dapr state store component used to store and share agent metadata centrally.")
+    agents_registry_key: str = Field(default="agents_registry", description="Dapr state store key for agentic workflow state.")
 
     # Fields initialized in model_post_init
     actor: Optional[DaprActor] = Field(default=None, init=False, description="DaprActor for actor lifecycle support.")
@@ -38,18 +40,17 @@ class AgentServiceBase(DaprEnabledService):
     actor_proxy: Optional[ActorProxy] = Field(default=None, init=False, description="Proxy for invoking methods on the agent's actor.")
     actor_class: Optional[type] = Field(default=None, init=False, description="Dynamically created actor class for the agent")
     agent_metadata: Optional[dict] = Field(default=None, init=False, description="Agent's metadata")
-    agent_metadata_store: Optional[DaprStateStore] = Field(default=None, init=False, description="Dapr state store instance for accessing and managing centralized agent metadata.")
-
+    
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @model_validator(mode="before")
     def set_service_name_and_topic(cls, values: dict):
         # Derive the service name from the agent's name or role
-        if not values.get("name") and "agent" in values:
-            values["name"] = values["agent"].name or values["agent"].role
+        if not values.get("service_name") and "agent" in values:
+            values["service_name"] = values["agent"].name or values["agent"].role
         # Derive agent_topic_name from service name if not provided
-        if not values.get("agent_topic_name") and values.get("name"):
-            values["agent_topic_name"] = values["name"]
+        if not values.get("agent_topic_name") and values.get("service_name"):
+            values["agent_topic_name"] = values["service_name"]
         return values
 
     def model_post_init(self, __context: Any) -> None:
@@ -59,9 +60,6 @@ class AgentServiceBase(DaprEnabledService):
 
         # Proceed with base model setup
         super().model_post_init(__context)
-            
-        # Initialize the Dapr state store for agent metadata
-        self.agent_metadata_store = DaprStateStore(store_name=self.agents_state_store_name, address=self.daprGrpcAddress)
 
         # Dynamically create the actor class based on the agent's name
         actor_class_name = f"{self.agent.name}Actor"
@@ -128,13 +126,33 @@ class AgentServiceBase(DaprEnabledService):
             # Perform any required cleanup, such as metadata removal
             await self.stop()
     
+    async def get_data_from_store(self, store_name: str, key: str) -> Optional[dict]:
+        """
+        Retrieve data from a specified Dapr state store using a provided key.
+
+        Args:
+            store_name (str): The name of the Dapr state store component.
+            key (str): The key under which the data is stored.
+
+        Returns:
+            Optional[dict]: The data stored under the specified key if found; otherwise, None.
+        """
+        try:
+            async with DaprClient(address=self.daprGrpcAddress) as client:
+                response: StateResponse = await client.get_state(store_name=store_name, key=key)
+                data = response.data
+
+                return json.loads(data) if data else None
+        except Exception as e:
+            logger.error(f"Error retrieving data for key '{key}' from store '{store_name}': {e}")
+            return None
+    
     async def get_agents_metadata(self) -> dict:
         """
         Retrieve metadata for all agents except the orchestrator itself.
         """
-        key = "agents_metadata"
         try:
-            agents_metadata = await self.get_metadata_from_store(self.agent_metadata_store, key) or {}
+            agents_metadata = await self.get_data_from_store(self.agents_registry_store_name, self.agents_registry_key) or {}
             # Exclude the orchestrator's own metadata
             return {name: metadata for name, metadata in agents_metadata.items() if name != self.agent.name}
         except Exception as e:
@@ -145,18 +163,24 @@ class AgentServiceBase(DaprEnabledService):
         """
         Registers the agent's metadata in the Dapr state store under 'agents_metadata'.
         """
-        key = "agents_metadata"
         try:
             # Retrieve existing metadata or initialize as an empty dictionary
-            agents_metadata = await self.get_metadata_from_store(self.agent_metadata_store, key) or {}
-            agents_metadata[self.name] = self.agent_metadata
+            agents_metadata = await self.get_data_from_store(self.agents_registry_store_name, self.agents_registry_key) or {}
+            agents_metadata[self.agent.name] = self.agent_metadata
 
             # Save the updated metadata back to Dapr store
-            self.agent_metadata_store.save_state(key, json.dumps(agents_metadata), {"contentType": "application/json"})
-            logger.info(f"{self.name} registered its metadata under key '{key}'")
+            async with DaprClient(address=self.daprGrpcAddress) as client:
+                await client.save_state(
+                    store_name=self.agents_registry_store_name,
+                    key=self.agents_registry_key,
+                    value=json.dumps(agents_metadata),
+                    state_metadata={"contentType": "application/json"}
+                )
+            
+            logger.info(f"{self.agent.name} registered its metadata under key '{self.agents_registry_key}'")
 
         except Exception as e:
-            logger.error(f"Failed to register metadata for agent {self.name}: {e}")
+            logger.error(f"Failed to register metadata for agent {self.agent.name}: {e}")
     
     async def invoke_task(self, task: Optional[str]) -> Response:
         """
@@ -251,30 +275,6 @@ class AgentServiceBase(DaprEnabledService):
         except Exception as e:
             logger.error(f"Failed to send message to agent '{name}': {e}", exc_info=True)
             raise HTTPException(status_code=500, detail=f"Error sending message to agent '{name}': {str(e)}")
-    
-    async def publish_task_result(self, message: Union[BaseModel, dict], **kwargs) -> None:
-        """
-        Publishes task results to the results topic.
-
-        Args:
-            message (Union[BaseModel, dict]): The task result as a Pydantic model or dictionary.
-            **kwargs: Additional metadata fields to include in the message.
-        """
-        try:
-            logger.info(f"{self.agent.name} publishing task results.")
-
-            await self.publish_event_message(
-                topic_name=self.task_results_topic_name,
-                pubsub_name=self.message_bus_name,
-                source=self.agent.name,
-                message=message,
-                **kwargs,
-            )
-
-            logger.debug(f"{self.agent.name} published task results.")
-        except Exception as e:
-            logger.error(f"Failed to publish task result: {e}", exc_info=True)
-            raise HTTPException(status_code=500, detail=f"Error publishing task result: {str(e)}")
     
     def register_message_routes(self) -> None:
         """

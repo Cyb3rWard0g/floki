@@ -1,6 +1,9 @@
-from floki.types import BaseMessage
-from typing import List
+from floki.types.message import BaseMessage
 from pydantic import ValidationError
+from typing import List
+import logging
+
+logger = logging.getLogger(__name__)
 
 def messages_to_string(messages: List[BaseMessage]) -> str:
     """

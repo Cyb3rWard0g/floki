@@ -1,24 +1,33 @@
-from floki.agent.services.base import AgentServiceBase
-from floki.agent.services.messaging import message_router
+from floki.agent.actor.service import AgentActorServiceBase
+from floki.messaging import message_router
 from floki.types.agent import AgentActorMessage
 from floki.types.message import BaseMessage, EventMessageMetadata
 from fastapi import Response, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 import logging
 
 logger = logging.getLogger(__name__)
 
-class TriggerActionMessage(BaseModel):
-    task: Optional[str] = None
+class AgentTaskResponse(BaseMessage):
+    """
+    Represents a response message from an agent after completing a task.
+    """
 
-class AgentService(AgentServiceBase):
+class TriggerAction(BaseModel):
+    """
+    Represents a message used to trigger an agent's activity within the workflow.
+    """
+    task: Optional[str] = Field(None, description="The specific task to execute. If not provided, the agent can act based on its memory or predefined behavior.")
+    iteration: Optional[int] = Field(default=0, description="The current iteration of the workflow loop.")
+
+class AgentActorService(AgentActorServiceBase):
     """
     A Pydantic-based class for managing services and exposing FastAPI routes with Dapr pub/sub and actor support.
     """
     
     @message_router
-    async def process_trigger_action(self, message: TriggerActionMessage, metadata: EventMessageMetadata) -> Response:
+    async def process_trigger_action(self, message: TriggerAction, metadata: EventMessageMetadata) -> Response:
         """
         Processes TriggerAction messages sent directly to the agent's topic.
         """
@@ -42,13 +51,15 @@ class AgentService(AgentServiceBase):
             # Broadcast result
             response_message = BaseMessage(name=self.agent.name, role="user", content=content)
             await self.broadcast_message(message=response_message)
+            
+            # Prepare metadata for routing
+            additional_metadata = {"event_name": "AgentTaskResponse", "workflow_instance_id": workflow_instance_id}
 
-            # Publish result
-            additional_metadata = {"ttlInSeconds": "120"}
-            if workflow_instance_id:
-                additional_metadata.update({"event_name": "AgentCompletedTask", "workflow_instance_id": workflow_instance_id})
-
-            await self.publish_task_result(message=response_message, **additional_metadata)
+            # Validate and wrap response
+            agent_response = AgentTaskResponse(**response_message.model_dump())
+            
+            # Send the message to the target agent
+            await self.send_message_to_agent(name=metadata.source, message=agent_response, **additional_metadata)
 
             return Response(content="Task processed successfully", status_code=status.HTTP_200_OK)
         except Exception as e:
