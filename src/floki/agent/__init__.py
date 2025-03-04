@@ -1,4 +1,4 @@
 from .base import AgentBase
 from .utils.factory import Agent
-from .services import AgentServiceBase, AgentService
+from .actor import AgentActorService
 from .patterns import ReActAgent, ToolCallAgent, OpenAPIReActAgent

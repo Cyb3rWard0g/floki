@@ -1,0 +1,15 @@
+# https://docs.dapr.io/developing-applications/local-development/multi-app-dapr-run/multi-app-template/#template-properties
+version: 1
+common:
+  resourcesPath: ./components
+  logLevel: info
+  appLogDestination: console
+  daprdLogDestination: console
+  configFilePath: config.yaml
+
+apps:
+- appId: LocalCodeExecutorAgentApp
+  appDirPath: ./services/local
+  appPort: 8001
+  command: ["python3", "app.py"]
+  daprGRPCPort: 50001

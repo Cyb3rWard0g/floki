@@ -89,12 +89,30 @@ spec:
     value: "true"
 ```
 
+!!! info
+    Create a file named `config.yaml` at the same directory level of your `components` folder.
+
+```yaml
+apiVersion: dapr.io/v1alpha1
+kind: Configuration
+metadata:
+  name: mydaprconfig
+spec:
+  tracing:
+    samplingRate: "1"
+    zipkin:
+      endpointAddress: http://localhost:9411/api/v2/spans
+  features:
+    - name: SchedulerReminders
+      enabled: false
+```
+
 ### Run Workflow!
 
 Now, you can run that workflow with the `Dapr CLI`:
 
 ```bash
-dapr run --app-id originalwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_original_activity.py
+dapr run --app-id originalwf --dapr-grpc-port 50001 --config config.yaml --resources-path components/ -- python3 wf_taskchain_dapr_activity.py
 ```
 
 ![](../../img/workflows_original_activity.png)
@@ -108,45 +126,49 @@ With `Floki`, the goal was to simplify workflows while adding flexibility and po
     The same example as before can be written in the following way. While the difference might not be immediately noticeable, this is a straightforward example of task chaining using Python functions. Create a file named `wf_taskchain_floki_activity.py`.
 
 ```python
-from floki import WorkflowApp
+from floki.workflow import WorkflowApp, workflow, task
 from floki.types import DaprWorkflowContext
+import logging
 
-wfapp = WorkflowApp()
-
-@wfapp.workflow(name='random_workflow')
+@workflow(name='random_workflow')
 def task_chain_workflow(ctx:DaprWorkflowContext, input: int):
     result1 = yield ctx.call_activity(step1, input=input)
     result2 = yield ctx.call_activity(step2, input=result1)
     result3 = yield ctx.call_activity(step3, input=result2)
     return [result1, result2, result3]
 
-@wfapp.task
+@task
 def step1(activity_input):
     print(f'Step 1: Received input: {activity_input}.')
     # Do some work
     return activity_input + 1
 
-@wfapp.task
+@task
 def step2(activity_input):
     print(f'Step 2: Received input: {activity_input}.')
     # Do some work
     return activity_input * 2
 
-@wfapp.task
+@task
 def step3(activity_input):
     print(f'Step 3: Received input: {activity_input}.')
     # Do some work
     return activity_input ^ 2
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
+
+    wfapp = WorkflowApp()
+
     results = wfapp.run_and_monitor_workflow(task_chain_workflow, input=10)
+
     print(f"Results: {results}")
 ```
 
 Now, you can run that workflow with the same command with the `Dapr CLI`:
 
 ```bash
-dapr run --app-id flokiwf --dapr-grpc-port 50001 --resources-path components/ -- python3 wf_taskchain_floki_activity.py
+dapr run --app-id flokiwf --dapr-grpc-port 50001 --config config.yaml --resources-path components/ -- python3 wf_taskchain_floki_activity.py
 ```
 
 ![](../../img/workflows_floki_activity.png)

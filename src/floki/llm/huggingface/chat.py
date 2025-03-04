@@ -4,7 +4,7 @@ from floki.prompt.prompty import Prompty
 from floki.types.message import BaseMessage
 from floki.llm.chat import ChatClientBase
 from floki.tool import AgentTool
-from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type, Literal
+from typing import Union, Optional, Iterable, Dict, Any, List, Iterator, Type, Literal, ClassVar
 from pydantic import BaseModel
 from pathlib import Path
 import logging
@@ -16,6 +16,8 @@ class HFHubChatClient(HFHubInferenceClientBase, ChatClientBase):
     Concrete class for the Hugging Face Hub's chat completion API using the Inference API.
     This class extends the ChatClientBase and provides the necessary configurations for Hugging Face models.
     """
+
+    SUPPORTED_STRUCTURED_MODES: ClassVar[set] = {"function_call"}
 
     def model_post_init(self, __context: Any) -> None:
         """
@@ -86,6 +88,9 @@ class HFHubChatClient(HFHubInferenceClientBase, ChatClientBase):
             Union[Iterator[Dict[str, Any]], Dict[str, Any]]: The chat completion response(s).
         """
 
+        if structured_mode not in self.SUPPORTED_STRUCTURED_MODES:
+            raise ValueError(f"Invalid structured_mode '{structured_mode}'. Must be one of {self.SUPPORTED_STRUCTURED_MODES}.")
+        
         # If input_data is provided, check for a prompt_template
         if input_data:
             if not self.prompt_template:

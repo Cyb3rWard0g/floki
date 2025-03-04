@@ -3,7 +3,7 @@ from floki.agent.utils.text_printer import ColorTextFormatter
 from floki.types import MessageContent, MessagePlaceHolder
 from floki.tool.executor import AgentToolExecutor
 from floki.prompt.base import PromptTemplateBase
-from floki.llm import LLMClientBase, OpenAIChatClient
+from floki.llm import ChatClientBase, OpenAIChatClient
 from floki.prompt import ChatPromptTemplate
 from floki.tool.base import AgentTool
 from typing import List, Optional, Dict, Any, Union, Callable, Literal
@@ -24,7 +24,7 @@ class AgentBase(BaseModel, ABC):
     goal: Optional[str] = Field(default="Help humans", description="The agent's main objective (e.g., 'Provide Weather information').")
     instructions: Optional[List[str]] = Field(default=None, description="Instructions guiding the agent's tasks.")
     system_prompt: Optional[str] = Field(default=None, description="A custom system prompt, overriding name, role, goal, and instructions.")
-    llm: LLMClientBase = Field(default_factory=OpenAIChatClient, description="Language model client for generating responses.")
+    llm: ChatClientBase = Field(default_factory=OpenAIChatClient, description="Language model client for generating responses.")
     prompt_template: Optional[PromptTemplateBase] = Field(default=None, description="The prompt template for the agent.")
     tools: List[Union[AgentTool, Callable]] = Field(default_factory=list, description="Tools available for the agent to assist with tasks.")
     max_iterations: int = Field(default=10, description="Max iterations for conversation cycles.")
@@ -66,7 +66,7 @@ class AgentBase(BaseModel, ABC):
             List[MessageContent]: The chat history.
         """
         if isinstance(self.memory, ConversationVectorMemory) and task:
-            query_embeddings = self.memory.vector_store.embed_documents([task])
+            query_embeddings = self.memory.vector_store.embedding_function.embed(task)
             return self.memory.get_messages(query_embeddings=query_embeddings)
         return self.memory.get_messages()
     

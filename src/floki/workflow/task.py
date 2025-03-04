@@ -2,8 +2,9 @@ from pydantic import BaseModel, Field, ConfigDict, TypeAdapter, ValidationError
 from typing import Any, Callable, Optional, Union, get_origin, get_args, List
 from floki.types import ChatCompletion, BaseMessage, UserMessage
 from floki.llm.utils import StructureHandler
-from floki.llm.base import LLMClientBase
+from floki.llm.chat import ChatClientBase
 from floki.llm.openai import OpenAIChatClient
+from floki.agent.base import AgentBase
 from dapr.ext.workflow import WorkflowActivityContext
 from collections.abc import Iterable
 from functools import update_wrapper
@@ -15,7 +16,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class Task(BaseModel):
+class WorkflowTask(BaseModel):
     """
     Encapsulates task logic for execution by an LLM, agent, or Python function.
 
@@ -25,10 +26,8 @@ class Task(BaseModel):
 
     func: Optional[Callable] = Field(None, description="The original function to be executed, if provided.")
     description: Optional[str] = Field(None, description="A description template for the task, used with LLM or agent.")
-    agent: Optional[Any] = Field(None, description="The agent used for task execution, if applicable.")
-    agent_method: Union[str, Callable] = Field("run", description="The method or callable for invoking the agent.")
-    llm: Optional[LLMClientBase] = Field(default_factory=OpenAIChatClient, description="The LLM client for executing the task, if applicable.")
-    llm_method: Union[str, Callable] = Field("generate", description="The method or callable for invoking the LLM client.")
+    agent: Optional[AgentBase] = Field(None, description="The agent used for task execution, if applicable.")
+    llm: Optional[ChatClientBase] = Field(None, description="The LLM client for executing the task, if applicable.")
     include_chat_history: Optional[bool] = Field(False, description="Whether to include past conversation history in the LLM call.")
     workflow_app: Optional[Any] = Field(None, description="Reference to the WorkflowApp instance.")
 
@@ -68,9 +67,10 @@ class Task(BaseModel):
 
         try:
             if self.agent or self.llm:
-                # Task requires LLM/Agent
-                description = self.description or (self.func.__doc__ if self.func else None)
-                result = await self._run_task(self.format_description(description, input))
+                if not self.description:
+                    raise ValueError(f"Task {self.func.__name__} is LLM-based but has no description!")
+
+                result = await self._run_task(self.format_description(self.description, input))
                 result = await self._validate_output_llm(result)
             elif self.func:
                 # Task is a Python function
@@ -171,17 +171,8 @@ class Task(BaseModel):
             Any: The result of the agent execution.
         """
         logger.info("Invoking Task with AI Agent...")
-        if isinstance(self.agent_method, str):
-            agent_callable = getattr(self.agent, self.agent_method, None)
-            if not agent_callable:
-                raise AttributeError(f"Agent does not have a method named '{self.agent_method}'.")
-        elif callable(self.agent_method):
-            agent_callable = self.agent_method
-        else:
-            raise ValueError("Invalid agent method provided.")
 
-        # Execute the agent method
-        result = await agent_callable({"task": description}) if asyncio.iscoroutinefunction(agent_callable) else agent_callable({"task": description})
+        result = self.agent.run(task=description)
 
         logger.debug(f"Agent result type: {type(result)}, value: {result}")
         return self._convert_result(result)
@@ -206,7 +197,7 @@ class Task(BaseModel):
         conversation_history = []
         if self.include_chat_history and self.workflow_app is not None:
             logger.info("Retrieving conversation history...")
-            conversation_history = getattr(self.workflow_app, "messages", [])
+            conversation_history = self.workflow_app.get_chat_history()
             logger.debug(f"Conversation history retrieved: {conversation_history}")
 
         # Convert input description into message format
@@ -231,18 +222,8 @@ class Task(BaseModel):
                 if isinstance(list_type, type) and issubclass(list_type, BaseModel):
                     llm_params['response_format'] = Iterable[list_type]
 
-        # Resolve the LLM method
-        if isinstance(self.llm_method, str):
-            llm_callable = getattr(self.llm, self.llm_method, None)
-            if not llm_callable:
-                raise AttributeError(f"The LLM does not have a method named '{self.llm_method}'.")
-        elif callable(self.llm_method):
-            llm_callable = self.llm_method
-        else:
-            raise ValueError("Invalid LLM method provided.")
-
         # Execute the LLM method (async or sync)
-        result = await llm_callable(**llm_params) if asyncio.iscoroutinefunction(llm_callable) else llm_callable(**llm_params)
+        result = self.llm.generate(**llm_params)
 
         logger.debug(f"LLM result type: {type(result)}, value: {result}")
         return self._convert_result(result)
@@ -351,16 +332,50 @@ class Task(BaseModel):
         """
         if self.signature:
             expected_type = self.signature.return_annotation
-            
+
             if expected_type and expected_type is not inspect.Signature.empty:
                 try:
+                    origin = get_origin(expected_type)  # Extracts base type (list, dict, etc.)
+                    args = get_args(expected_type)  # Extracts inner types
+
+                    # Handle a single Pydantic model
+                    if isinstance(expected_type, type) and issubclass(expected_type, BaseModel):
+
+                        if isinstance(result, dict):  # Convert dict -> Pydantic model
+                            return expected_type(**result).model_dump()
+                        elif not isinstance(result, expected_type):
+                            raise TypeError(f"Expected {expected_type}, got {type(result)}")
+                        return result.model_dump()
+
+                    # Handle List[PydanticModel] safely
+                    elif origin is list and args:
+                        model_type = args[0]  # Extract inner type
+
+                        if isinstance(model_type, type) and issubclass(model_type, BaseModel):
+                            if not isinstance(result, list):
+                                raise TypeError(f"Expected a list of {model_type}, but got {type(result)}.")
+                            return [model_type(**item).model_dump() if isinstance(item, dict) else item.model_dump() for item in result]
+
+                        # Handle List[Dict[str, Any]] correctly
+                        elif model_type is dict:
+                            if not isinstance(result, list):
+                                raise TypeError(f"Expected a list of dictionaries, but got {type(result)}.")
+                            return result  # Already valid
+
+                    # Handle Dict[str, Any] directly
+                    elif origin is dict:
+                        if not isinstance(result, dict):
+                            raise TypeError(f"Expected a dictionary, but got {type(result)}.")
+                        return result  # Already valid
+
+                    # Handle primitive types (int, str, bool, etc.)
                     adapter = TypeAdapter(expected_type)
                     validated_result = adapter.validate_python(result)
                     return validated_result
+
                 except ValidationError as e:
-                    error_message = f"Output validation failed for expected type {expected_type}. Received: {result}. Error: {e}"
-                    logger.error(error_message)
-                    raise TypeError(error_message)
+                    logger.error(f"Validation failed for expected type {expected_type}. Error: {e}")
+                    raise TypeError(f"Invalid return type {expected_type}: {e}")
 
         return result  # If no validation applies, return result as-is
 
@@ -369,7 +384,7 @@ class TaskWrapper:
     A wrapper for the Task class that allows it to be used as a callable with a __name__ attribute.
     """
 
-    def __init__(self, task_instance: Task, name: str):
+    def __init__(self, task_instance: WorkflowTask, name: str):
         """
         Initialize the TaskWrapper.
 

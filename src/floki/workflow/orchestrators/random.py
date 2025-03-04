@@ -1,9 +1,10 @@
-from floki.workflow.agentic import AgenticWorkflow
+from floki.workflow.orchestrators.base import OrchestratorServiceBase
 from floki.types import DaprWorkflowContext, BaseMessage
+from floki.workflow.decorators import workflow, task
 from typing import Any, Optional
 from dataclasses import dataclass
 from datetime import timedelta
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import random
 import logging
 
@@ -27,30 +28,26 @@ class ChatLoop:
     message: str
     iteration: int
 
-class RandomOrchestrator(AgenticWorkflow):
+class RandomOrchestrator(OrchestratorServiceBase):
     """
     Implements a random workflow where agents are selected randomly to perform tasks.
     The workflow iterates through conversations, selecting a random agent at each step.
 
     Uses `continue_as_new` to persist iteration state.
     """
+
+    current_speaker: Optional[str] = Field(default=None, init=False, description="Current speaker in the conversation.")
+
     def model_post_init(self, __context: Any) -> None:
         """
         Initializes and configures the random workflow service.
         Registers tasks and workflows, then starts the workflow runtime.
         """
+        self.workflow_name = "RandomWorkflow"
+        
         super().model_post_init(__context)
 
-        self.workflow_name = "random_workflow"
-
-        # Register workflows and tasks
-        self.workflow(self.random_workflow, name=self.workflow_name)
-        # Custom tasks
-        self.task(self.process_input)
-        self.task(self.broadcast_input_message)
-        self.task(self.select_random_speaker)
-        self.task(self.trigger_agent)
-
+    @workflow(name="RandomWorkflow")
     def random_workflow(self, ctx: DaprWorkflowContext, input: ChatLoop):
         """
         Executes a random workflow where agents are selected randomly for interactions.
@@ -117,6 +114,7 @@ class RandomOrchestrator(AgenticWorkflow):
         # Restart workflow with updated state
         ctx.continue_as_new(input)
 
+    @task
     async def process_input(self, message: str):
         """
         Processes the input message for the workflow.
@@ -128,6 +126,7 @@ class RandomOrchestrator(AgenticWorkflow):
         """
         return {"role": "user", "content": message}
 
+    @task
     async def broadcast_input_message(self, **kwargs):
         """
         Broadcasts a message to all agents.
@@ -138,6 +137,7 @@ class RandomOrchestrator(AgenticWorkflow):
         message = {key: value for key, value in kwargs.items()}
         await self.broadcast_message(message=BaseMessage(**message))
 
+    @task
     async def select_random_speaker(self, iteration: int) -> str:
         """
         Selects a random speaker, ensuring that a different agent is chosen if possible.
@@ -170,6 +170,7 @@ class RandomOrchestrator(AgenticWorkflow):
         logger.info(f"{self.name} randomly selected agent {random_speaker} (Iteration: {iteration}).")
         return random_speaker
 
+    @task
     async def trigger_agent(self, name: str, instance_id: str) -> None:
         """
         Triggers the specified agent to perform its activity.
