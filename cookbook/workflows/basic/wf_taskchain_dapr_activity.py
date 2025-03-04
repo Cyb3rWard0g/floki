@@ -4,8 +4,8 @@ import dapr.ext.workflow as wf
 wfr = wf.WorkflowRuntime()
 
 @wfr.workflow(name='random_workflow')
-def task_chain_workflow(ctx: wf.DaprWorkflowContext, wf_input: int):
-    result1 = yield ctx.call_activity(step1, input=wf_input)
+def task_chain_workflow(ctx: wf.DaprWorkflowContext, x: int):
+    result1 = yield ctx.call_activity(step1, input=x)
     result2 = yield ctx.call_activity(step2, input=result1)
     result3 = yield ctx.call_activity(step3, input=result2)
     return [result1, result2, result3]
