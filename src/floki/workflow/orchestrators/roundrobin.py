@@ -1,5 +1,6 @@
-from floki.workflow.agentic import AgenticWorkflow
+from floki.workflow.orchestrators.base import OrchestratorServiceBase
 from floki.types import DaprWorkflowContext, BaseMessage
+from floki.workflow.decorators import workflow, task
 from typing import Any, Optional
 from dataclasses import dataclass
 from datetime import timedelta
@@ -26,7 +27,7 @@ class ChatLoop:
     message: str
     iteration: int
 
-class RoundRobinOrchestrator(AgenticWorkflow):
+class RoundRobinOrchestrator(OrchestratorServiceBase):
     """
     Implements a round-robin workflow where agents take turns performing tasks.
     The workflow iterates through conversations by selecting agents in a circular order.
@@ -38,18 +39,12 @@ class RoundRobinOrchestrator(AgenticWorkflow):
         Initializes and configures the round-robin workflow service.
         Registers tasks and workflows, then starts the workflow runtime.
         """
-        super().model_post_init(__context)
-        
-        self.workflow_name = "round_robin_workflow"
 
-        # Register workflows and tasks
-        self.workflow(self.round_robin_workflow, name=self.workflow_name)
-        # Custom tasks
-        self.task(self.process_input)
-        self.task(self.broadcast_input_message)
-        self.task(self.select_next_speaker)
-        self.task(self.trigger_agent)
+        self.workflow_name = "RoundRobinWorkflow"
+        
+        super().model_post_init(__context)
     
+    @workflow(name="RoundRobinWorkflow")
     def round_robin_workflow(self, ctx: DaprWorkflowContext, input: ChatLoop):
         """
         Executes a round-robin workflow where agents interact iteratively.
@@ -116,6 +111,7 @@ class RoundRobinOrchestrator(AgenticWorkflow):
         # Restart workflow with updated state
         ctx.continue_as_new(input)
 
+    @task
     async def process_input(self, message: str):
         """
         Processes the input message for the workflow.
@@ -127,6 +123,7 @@ class RoundRobinOrchestrator(AgenticWorkflow):
         """
         return {"role": "user", "content": message}
     
+    @task
     async def broadcast_input_message(self, **kwargs):
         """
         Broadcasts a message to all agents.
@@ -137,6 +134,7 @@ class RoundRobinOrchestrator(AgenticWorkflow):
         message = {key: value for key, value in kwargs.items()}
         await self.broadcast_message(message=BaseMessage(**message))
     
+    @task
     async def select_next_speaker(self, iteration: int) -> str:
         """
         Selects the next speaker in round-robin order.
@@ -158,6 +156,7 @@ class RoundRobinOrchestrator(AgenticWorkflow):
         logger.info(f"{self.name} selected agent {next_speaker} for iteration {iteration}.")
         return next_speaker
     
+    @task
     async def trigger_agent(self, name: str, instance_id: str) -> None:
         """
         Triggers the specified agent to perform its activity.

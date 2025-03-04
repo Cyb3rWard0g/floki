@@ -55,10 +55,10 @@ The team is working on the following task:
 - **You must always provide a valid agent name** from the team**. DO NOT return `null` or an empty agent name**.
 - Provide a **clear, actionable instruction** for the next agent.
 - **You must ONLY select step and substep IDs that EXIST in the plan.** 
-  - **A substep should ONLY be selected if it is currently `"not_started"` or `"in_progress"`**.
+  - **DO NOT select a `"completed"` step or substep.**
   - **If the main step is `"not_started"` but has `"completed"` substeps, you must correctly identify the next `"not_started"` substep.**
   - **DO NOT create or assume non-existent step/substep IDs.**
-  - **DO NOT reference any invalid identifiers. Always check the plan.**
+  - **DO NOT reference any invalid step/substep identifiers. Always check the plan.**
 
 ### Expected Output Format (JSON Schema):
 {next_step_schema}
@@ -84,18 +84,20 @@ The team is working on the following task:
 Assess the task progress based on **conversation history**, execution results, and the structured plan.
 
 1. **Determine Overall Task Verdict**  
-   - `"continue"` → The task is still in progress and requires further work.  
-   - `"completed"` → The task has been successfully completed (i.e., all steps are marked `"completed"`).  
+   - `"continue"` → **Use this if there are `"not_started"` or `"in_progress"` steps that still require execution.**  
+   - `"completed"` → The task is **done** (i.e., **all required steps and substeps have been completed**).  
    - `"failed"` → The task cannot be completed due to an unresolved issue.  
 
 2. **Evaluate Step Completion**  
-   - If the **executed step or sub-step (above) is explicitly completed**, mark it as `"completed"`.  
-   - If the executed step **has sub-steps**, ensure **all** sub-steps are `"completed"` before marking the parent step `"completed"`.  
+   - If an **agent explicitly marks a step as `"completed"`**, then it **remains completed**, regardless of substeps.  
+   - If a **substep is completed**, check if **all** substeps are `"completed"` **before marking the parent step as "completed"**.  
+   - **If a step is "completed" but has "not_started" substeps, DO NOT modify those substeps.** They remain unchanged unless explicitly acted upon.  
 
 3. **Update Step & Sub-Step Status**  
-   - **Only mark a step as `"completed"` if it has been explicitly confirmed as done.**  
-   - **Do NOT transition `"not_started"` steps to `"in_progress"` here**. That is handled in a different process.  
-   - **Only update statuses if the verdict is `"continue"`**.  
+   - **Always update statuses based on the latest results**, regardless of whether the verdict is `"continue"` or `"completed"`.  
+   - If an **agent explicitly marks a step as `"completed"`**, then it **remains completed**, regardless of substeps.  
+   - If a **substep is completed**, check if **all** substeps are `"completed"` **before marking the parent step as "completed"**.  
+   - **If a step is "completed" but has "not_started" substeps, DO NOT modify those substeps.** They remain unchanged unless explicitly acted upon.  
 
 4. **Plan Adjustments (Only If Necessary)**  
    - If the step descriptions are **unclear or incomplete**, update `"plan_restructure"` with a **single modified step**.  
@@ -103,9 +105,9 @@ Assess the task progress based on **conversation history**, execution results, a
 
 ### Important:
 - **Do NOT mark a step as `"completed"` unless explicitly confirmed based on execution results.**  
-- **Do NOT transition `"not_started"` steps to `"in_progress"` here**. This happens in a different process.  
-- **Only update statuses and restructure steps when necessary.**  
-- **Do not make unnecessary modifications to the plan.**  
+- **Do NOT mark substeps as `"completed"` unless explicitly confirmed or all are already completed.**  
+- **Always apply step/substep status updates, even if the task is `"completed"`**.  
+- **Do not introduce unnecessary modifications to the plan.**  
 
 ### Expected Output Format (JSON Schema):
 {progress_check_schema}
