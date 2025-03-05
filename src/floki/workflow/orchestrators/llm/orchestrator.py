@@ -481,9 +481,13 @@ class LLMOrchestrator(OrchestratorServiceBase):
             status_updates.append({"step": step, "substep": substep, "status": "completed"})
 
             # If it's a substep, check if all sibling substeps are completed
-            parent_step = find_step_in_plan(plan, step)  # Ensure parent is retrieved without `substep`
-            if parent_step and "substeps" in parent_step:
-                all_substeps_completed = all(ss["status"] == "completed" for ss in parent_step["substeps"])
+            parent_step = find_step_in_plan(plan, step)  # Retrieve parent without `substep`
+            if parent_step:
+                # Ensure "substeps" is a valid list before iteration
+                if not isinstance(parent_step.get("substeps"), list):
+                    parent_step["substeps"] = []
+
+                all_substeps_completed = all(ss.get("status") == "completed" for ss in parent_step["substeps"])
                 if all_substeps_completed:
                     parent_step["status"] = "completed"
                     status_updates.append({"step": step, "status": "completed"})
