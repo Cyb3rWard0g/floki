@@ -685,9 +685,51 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#agents-as-services" class="md-nav__link">
+  <a href="#agents-as-services-dapr-actors-and-dapr-workflows" class="md-nav__link">
     <span class="md-ellipsis">
-      Agents as Services
+      Agents as Services: Dapr Actors and Dapr Workflows
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agents as Services: Dapr Actors and Dapr Workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-agents-as-dapr-actors-encapsulating-agent-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Agents as Dapr Actors (Encapsulating Agent Logic)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-agents-as-dapr-workflows-orchestration-complex-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Agents as Dapr Workflows (Orchestration, Complex Execution)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-how-floki-uses-dapr-workflows-for-orchestration" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. How Floki Uses Dapr Workflows for Orchestration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structuring-a-multi-agent-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      Structuring A Multi-Agent Project
     </span>
   </a>
   
@@ -708,30 +750,6 @@
       Define Your First Agent Service
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-agentic-workflow-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      The Agentic Workflow Service
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The Agentic Workflow Service">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#orchestrators" class="md-nav__link">
-    <span class="md-ellipsis">
-      Orchestrators
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1027,9 +1045,51 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#agents-as-services" class="md-nav__link">
+  <a href="#agents-as-services-dapr-actors-and-dapr-workflows" class="md-nav__link">
     <span class="md-ellipsis">
-      Agents as Services
+      Agents as Services: Dapr Actors and Dapr Workflows
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Agents as Services: Dapr Actors and Dapr Workflows">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-agents-as-dapr-actors-encapsulating-agent-logic" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Agents as Dapr Actors (Encapsulating Agent Logic)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-agents-as-dapr-workflows-orchestration-complex-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Agents as Dapr Workflows (Orchestration, Complex Execution)
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-how-floki-uses-dapr-workflows-for-orchestration" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. How Floki Uses Dapr Workflows for Orchestration
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#structuring-a-multi-agent-project" class="md-nav__link">
+    <span class="md-ellipsis">
+      Structuring A Multi-Agent Project
     </span>
   </a>
   
@@ -1050,30 +1110,6 @@
       Define Your First Agent Service
     </span>
   </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-agentic-workflow-service" class="md-nav__link">
-    <span class="md-ellipsis">
-      The Agentic Workflow Service
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="The Agentic Workflow Service">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#orchestrators" class="md-nav__link">
-    <span class="md-ellipsis">
-      Orchestrators
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -1208,8 +1244,146 @@
 <p class="admonition-title">Tip</p>
 <p>We will demonstrate this concept using the <a href="https://github.com/Cyb3rWard0g/floki/tree/main/cookbook/workflows/multi_agent_lotr">Multi-Agent Workflow Guide</a> from our Cookbook, which outlines a step-by-step guide to implementing a basic agentic workflow.</p>
 </div>
-<h2 id="agents-as-services">Agents as Services<a class="headerlink" href="#agents-as-services" title="Permanent link">&para;</a></h2>
-<p>In <code>Floki</code>, agents can be exposed as services, making them reusable, modular, and easy to integrate into agentic workflows. Each agent runs as a microservice, wrapped in a <a href="https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/">Dapr-enabled FastAPI server</a>. This design allows agents to operate independently while communicating through <a href="https://docs.dapr.io/developing-applications/building-blocks/pubsub/pubsub-overview/">Dapr’s pub/sub</a> messaging and interacting with state stores or other services.</p>
+<h2 id="agents-as-services-dapr-actors-and-dapr-workflows">Agents as Services: Dapr Actors and Dapr Workflows<a class="headerlink" href="#agents-as-services-dapr-actors-and-dapr-workflows" title="Permanent link">&para;</a></h2>
+<p>In <code>Floki</code>, agents can be implemented using <a href="https://docs.dapr.io/developing-applications/building-blocks/actors/actors-overview/">Dapr Actors</a> or <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr Workflows</a>, both of which are exposed as microservices via <a href="https://docs.dapr.io/developing-applications/sdks/python/python-sdk-extensions/python-fastapi/">FastAPI servers</a>.</p>
+<h3 id="1-agents-as-dapr-actors-encapsulating-agent-logic">1. Agents as Dapr Actors (Encapsulating Agent Logic)<a class="headerlink" href="#1-agents-as-dapr-actors-encapsulating-agent-logic" title="Permanent link">&para;</a></h3>
+<p>Agents in Floki can be wrapped in Dapr Virtual Actors, providing stateful, autonomous, and event-driven execution.</p>
+<p>✅ Encapsulates agent logic as an isolated, stateful entity.
+✅ Maintains its own identity and state across invocations.
+✅ Interacts via event-driven messaging using Dapr’s pub/sub.
+✅ Can be triggered on demand or listen for specific events.</p>
+<p>In <code>Floki</code>, agents are typically wrapped as <a href="https://docs.dapr.io/developing-applications/building-blocks/actors/actors-overview/">Dapr Actors</a> to modularize agent logic while keeping state persistence.</p>
+<p><strong>Example: Wrapping an Agent as a Dapr Actor</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentActorService</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Define Agent</span>
+        <span class="n">hobbit_agent</span> <span class="o">=</span> <span class="n">Agent</span><span class="p">(</span>
+            <span class="n">role</span><span class="o">=</span><span class="s2">&quot;Hobbit&quot;</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Frodo&quot;</span><span class="p">,</span>
+            <span class="n">goal</span><span class="o">=</span><span class="s2">&quot;Carry the One Ring to Mount Doom, resisting its corruptive power while navigating danger and uncertainty.&quot;</span><span class="p">,</span>
+            <span class="n">instructions</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;Speak like Frodo, with humility, determination, and a growing sense of resolve.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Endure hardships and temptations, staying true to the mission even when faced with doubt.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Seek guidance and trust allies, but bear the ultimate burden alone when necessary.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Move carefully through enemy-infested lands, avoiding unnecessary risks.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task.&quot;</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Expose Agent as an Actor over a Service</span>
+        <span class="n">hobbit_service</span> <span class="o">=</span> <span class="n">AgentActorService</span><span class="p">(</span>
+            <span class="n">agent</span><span class="o">=</span><span class="n">hobbit_agent</span><span class="p">,</span>
+            <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentsregistrystore&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_key</span><span class="o">=</span><span class="s2">&quot;agents_registry&quot;</span><span class="p">,</span>
+            <span class="n">service_port</span><span class="o">=</span><span class="mi">8001</span><span class="p">,</span>
+            <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50001</span>
+        <span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">hobbit_service</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error starting service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">load_dotenv</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</code></pre></div>
+<p>In this approach, each agent is independently stateful, and can react to events, maintain context, and interact with the message bus dynamically.</p>
+<h3 id="2-agents-as-dapr-workflows-orchestration-complex-execution">2. Agents as Dapr Workflows (Orchestration, Complex Execution)<a class="headerlink" href="#2-agents-as-dapr-workflows-orchestration-complex-execution" title="Permanent link">&para;</a></h3>
+<p>Instead of wrapping an agent inside an actor, <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-overview/">Dapr Workflows</a> define the structured execution of agent behaviors, reasoning loops, and tool selection. Workflows allow agents to:</p>
+<p>✅ Define complex execution sequences instead of just reacting to events.
+✅ Integrate with message buses to listen and act on real-time inputs.
+✅ Orchestrate multi-step reasoning, retrieval-augmented generation (RAG), and tool use.
+✅ Best suited for goal-driven, structured, and iterative decision-making workflows.</p>
+<p>🚀 Floki uses Dapr Workflows for orchestration and complex multi-agent collaboration.</p>
+<p><strong>Example: An Agent as a Dapr Workflow</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">AssistantAgent</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Define Agent</span>
+        <span class="n">wizard_service</span> <span class="o">=</span> <span class="n">AssistantAgent</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Gandalf&quot;</span><span class="p">,</span>
+            <span class="n">role</span><span class="o">=</span><span class="s2">&quot;Wizard&quot;</span><span class="p">,</span>
+            <span class="n">goal</span><span class="o">=</span><span class="s2">&quot;Guide the Fellowship with wisdom and strategy, using magic and insight to ensure the downfall of Sauron.&quot;</span><span class="p">,</span>
+            <span class="n">instructions</span><span class="o">=</span><span class="p">[</span>
+                <span class="s2">&quot;Speak like Gandalf, with wisdom, patience, and a touch of mystery.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Provide strategic counsel, always considering the long-term consequences of actions.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Use magic sparingly, applying it when necessary to guide or protect.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Encourage allies to find strength within themselves rather than relying solely on your power.&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;Respond concisely, accurately, and relevantly, ensuring clarity and strict alignment with the task.&quot;</span>
+            <span class="p">],</span>
+            <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
+            <span class="n">state_store_name</span><span class="o">=</span><span class="s2">&quot;agenticworkflowstate&quot;</span><span class="p">,</span>
+            <span class="n">state_key</span><span class="o">=</span><span class="s2">&quot;workflow_state&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentsregistrystore&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_key</span><span class="o">=</span><span class="s2">&quot;agents_registry&quot;</span><span class="p">,</span>
+            <span class="n">service_port</span><span class="o">=</span><span class="mi">8002</span><span class="p">,</span>
+            <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50002</span>
+        <span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">wizard_service</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error starting service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">load_dotenv</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</code></pre></div>
+<p>Here, <code>Gandalf</code> is an <code>AssistantAgent</code> implemented as a workflow, meaning it executes structured reasoning, plans actions, and integrates tools within a managed workflow execution loop.</p>
+<h3 id="3-how-floki-uses-dapr-workflows-for-orchestration">3. How Floki Uses Dapr Workflows for Orchestration<a class="headerlink" href="#3-how-floki-uses-dapr-workflows-for-orchestration" title="Permanent link">&para;</a></h3>
+<p>While Dapr Workflows build on Dapr Actors, they provide an abstraction for orchestrating multiple agents and interactions. In Floki, the orchestrator itself is a Dapr Workflow, which:</p>
+<p>✅ Coordinates execution of agentic workflows (LLM-driven or rule-based).
+✅ Delegates tasks to agents implemented as either Dapr Actors or other workflows.
+✅ Manages reasoning loops, plan adaptation, and error handling dynamically.</p>
+<p>🚀 Floki’s default orchestrator is a Dapr Workflow that interacts with both agent actors and agent workflows.</p>
+<p><strong>Example: The Orchestrator as a Dapr Workflow</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMOrchestrator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">agentic_orchestrator</span> <span class="o">=</span> <span class="n">LLMOrchestrator</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Orchestrator&quot;</span><span class="p">,</span>
+            <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
+            <span class="n">state_store_name</span><span class="o">=</span><span class="s2">&quot;agenticworkflowstate&quot;</span><span class="p">,</span>
+            <span class="n">state_key</span><span class="o">=</span><span class="s2">&quot;workflow_state&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentsregistrystore&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_key</span><span class="o">=</span><span class="s2">&quot;agents_registry&quot;</span><span class="p">,</span>
+            <span class="n">service_port</span><span class="o">=</span><span class="mi">8009</span><span class="p">,</span>
+            <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50009</span><span class="p">,</span>
+            <span class="n">max_iterations</span><span class="o">=</span><span class="mi">25</span>
+        <span class="p">)</span>
+
+        <span class="k">await</span> <span class="n">agentic_orchestrator</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error starting service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">load_dotenv</span><span class="p">()</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</code></pre></div>
+<p>This orchestrator acts as a central controller, ensuring that agentic workflows and actors communicate effectively, execute tasks in order, and handle iterative reasoning loops.</p>
+<h2 id="structuring-a-multi-agent-project">Structuring A Multi-Agent Project<a class="headerlink" href="#structuring-a-multi-agent-project" title="Permanent link">&para;</a></h2>
 <p>The way to structure such a project is straightforward. We organize our services into a directory that contains individual folders for each agent, along with a <code>components</code> directory for Dapr resources configurations. Each agent service includes its own app.py file, where the FastAPI server and the agent logic are defined.</p>
 <div class="language-text highlight"><pre><span></span><code>dapr.yaml                  # Dapr main config file
 components/                # Dapr resource files
@@ -1237,7 +1411,7 @@ OPENAI_BASE_URL=&quot;https://api.openai.com/v1&quot;
 │   ├── app.py             # Dapr Enabled FastAPI app for Hobbit
 </code></pre></div>
 <p>Create the <code>app.py</code> script and provide the following information.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentService</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">AgentActorService</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
@@ -1259,11 +1433,12 @@ OPENAI_BASE_URL=&quot;https://api.openai.com/v1&quot;
         <span class="p">)</span>
 
         <span class="c1"># Expose Agent as an Actor over a Service</span>
-        <span class="n">hobbit_service</span> <span class="o">=</span> <span class="n">AgentService</span><span class="p">(</span>
+        <span class="n">hobbit_service</span> <span class="o">=</span> <span class="n">AgentActorService</span><span class="p">(</span>
             <span class="n">agent</span><span class="o">=</span><span class="n">hobbit_agent</span><span class="p">,</span>
             <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
-            <span class="n">agents_state_store_name</span><span class="o">=</span><span class="s2">&quot;agentstatestore&quot;</span><span class="p">,</span>
-            <span class="n">port</span><span class="o">=</span><span class="mi">8001</span><span class="p">,</span>
+            <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentsregistrystore&quot;</span><span class="p">,</span>
+            <span class="n">agents_registry_key</span><span class="o">=</span><span class="s2">&quot;agents_registry&quot;</span><span class="p">,</span>
+            <span class="n">service_port</span><span class="o">=</span><span class="mi">8001</span><span class="p">,</span>
             <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50001</span>
         <span class="p">)</span>
 
@@ -1282,56 +1457,10 @@ OPENAI_BASE_URL=&quot;https://api.openai.com/v1&quot;
 <p>Key Considerations:</p>
 <ul>
 <li>Ensure the <code>message_bus_name</code> matches the <code>pub/sub</code> component name in your <code>pubsub.yaml</code> file.</li>
-<li>Verify the <code>agents_state_store_name</code> matches the state store component defined in your <code>agentstate.yaml</code> file.</li>
-<li>Increment the port for each new agent service (e.g., 8001, 8002, 8003).</li>
+<li>Verify the <code>agents_registry_store_name</code> matches the state store component defined in your <code>agentstate.yaml</code> file.</li>
+<li>Increment the <code>service_port</code> for each new agent service (e.g., 8001, 8002, 8003).</li>
 <li>Similarly, increment the <code>daprGrpcPort</code> for each service (e.g., 50001, 50002, 50003) to avoid conflicts.</li>
 <li>Customize the Agent parameters (<code>role</code>, <code>name</code>, <code>goal</code>, and <code>instructions</code>) to match the behavior you want for each service.</li>
-</ul>
-<h2 id="the-agentic-workflow-service">The Agentic Workflow Service<a class="headerlink" href="#the-agentic-workflow-service" title="Permanent link">&para;</a></h2>
-<p>The Agentic Workflow Service in <code>Floki</code> extends workflows to orchestrate communication among agents. It allows you to send messages to agents to trigger their participation and monitors a shared message bus to listen for all messages being passed. This enables dynamic collaboration and task distribution among agents.</p>
-<p>Types of Agentic Workflows:</p>
-<h3 id="orchestrators">Orchestrators<a class="headerlink" href="#orchestrators" title="Permanent link">&para;</a></h3>
-<p>At the moment, <code>Floki</code> uses <code>Agentic Workflow</code> services to describe the orchestrator of an agentic system. We can also define the <code>Agent</code> itself as an agentic workflow (more on this coming soon...)</p>
-<ul>
-<li><strong>Random</strong>: Distributes tasks to agents randomly, ensuring a non-deterministic selection of participating agents for each task.</li>
-<li><strong>RoundRobin</strong>: Cycles through agents in a fixed order, ensuring each agent has an equal opportunity to participate in tasks.</li>
-<li><strong>LLM-based</strong>: Leverages an LLM to decide which agent to trigger based on the content and context of the task and chat history.</li>
-</ul>
-<p>Next, we’ll define an <code>LLM Orchestrator</code> to demonstrate how this concept can be implemented.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">LLMOrchestrator</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
-
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">agentic_orchestrator</span> <span class="o">=</span> <span class="n">LLMOrchestrator</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Orchestrator&quot;</span><span class="p">,</span>
-            <span class="n">message_bus_name</span><span class="o">=</span><span class="s2">&quot;messagepubsub&quot;</span><span class="p">,</span>
-            <span class="n">agents_registry_store_name</span><span class="o">=</span><span class="s2">&quot;agentstatestore&quot;</span><span class="p">,</span>
-            <span class="n">state_store_name</span><span class="o">=</span><span class="s2">&quot;agenticworkflowstate&quot;</span><span class="p">,</span>
-            <span class="n">port</span><span class="o">=</span><span class="mi">8008</span><span class="p">,</span>
-            <span class="n">daprGrpcPort</span><span class="o">=</span><span class="mi">50008</span><span class="p">,</span>
-            <span class="n">max_iterations</span><span class="o">=</span><span class="mi">25</span>
-        <span class="p">)</span>
-
-        <span class="k">await</span> <span class="n">agentic_orchestrator</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Error starting service: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
-    <span class="n">load_dotenv</span><span class="p">()</span>
-
-    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
-
-    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
-</code></pre></div>
-<p>Unlike <code>Agents as Services</code>, the <code>Agentic Workflow Service</code> does not require an agent parameter since it orchestrates communication among multiple agents rather than representing a single agent. Instead, the configuration focuses on workflow-specific parameters:</p>
-<ul>
-<li><strong>Message Bus Name</strong> (<code>message_bus_name</code>): Defines the shared message bus that enables communication between all agents. Each agent publishes and subscribes to its own designated topic within this bus, facilitating real-time event-driven interactions.</li>
-<li><strong>Agents Registry Store Name</strong> (<code>agents_registry_store_name</code>): Specifies the state store where agent metadata is registered. Every time an agent joins or updates its status, this registry ensures the orchestrator is aware of all available agents and their capabilities.</li>
-<li><strong>Workflow State Store Name</strong> (<code>state_store_name</code>): Stores the workflow’s structured execution data, including the task plan, message exchanges, and task completion records. This state is retrieved by tasks and can be used to provide context when retrying operations. While Dapr manages the underlying workflow state for execution and fault tolerance, this store ensures that relevant contextual data is preserved for workflow decisions and agent interactions.</li>
-<li><strong>Max Iterations</strong> (<code>max_iterations</code>): Defines the maximum number of iterations the workflow will execute before terminating. This prevents infinite loops and ensures controlled task execution.</li>
 </ul>
 <h2 id="the-multi-app-run-template-file">The Multi-App Run template file<a class="headerlink" href="#the-multi-app-run-template-file" title="Permanent link">&para;</a></h2>
 <p>The <code>Multi-App Run Template</code> File is a YAML configuration file named <code>dapr.yaml</code> that allows you to run multiple applications simultaneously. This file is placed at the same level as the <code>components/</code> and <code>services/</code> directories, ensuring a consistent and organized project structure.</p>
@@ -1382,9 +1511,9 @@ services/                  # Directory for agent services
 
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkflowApp</span>
 <span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/workflow-llm/</span>
-<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8008</span>
+<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8009</span>
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;app.py&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50008</span>
+<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50009</span>
 </code></pre></div>
 <h2 id="starting-all-service-servers">Starting All Service Servers<a class="headerlink" href="#starting-all-service-servers" title="Permanent link">&para;</a></h2>
 <div class="admonition tip">
@@ -1412,9 +1541,9 @@ services/                  # Directory for agent services
 <h2 id="start-workflow-via-an-http-request">Start Workflow via an HTTP Request<a class="headerlink" href="#start-workflow-via-an-http-request" title="Permanent link">&para;</a></h2>
 <p>Once all services are running, you can initiate the workflow by making an HTTP POST request to the Agentic Workflow Service. This service orchestrates the workflow, triggering agent actions and handling communication among agents.</p>
 <p>Here’s an example of how to start the workflow using <code>curl</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code>curl<span class="w"> </span>-i<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8004/RunWorkflow<span class="w"> </span><span class="se">\</span>
+<div class="language-bash highlight"><pre><span></span><code>curl<span class="w"> </span>-i<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>http://localhost:8009/RunWorkflow<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-H<span class="w"> </span><span class="s2">&quot;Content-Type: application/json&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;message&quot;: &quot;Take the Ring to Mordor!&quot;}&#39;</span>
+<span class="w">    </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;task&quot;: &quot;Lets solve the riddle to open the Doors of Durin and enter Moria.&quot;}&#39;</span>
 </code></pre></div>
 <div class="language-text highlight"><pre><span></span><code>HTTP/1.1 200 OK
 date: Sat, 22 Feb 2025 06:12:35 GMT
@@ -1426,7 +1555,7 @@ content-type: application/json
 </code></pre></div>
 <p>In this example:</p>
 <ul>
-<li>The request is sent to the Agentic Workflow Service running on port <code>8008</code>.</li>
+<li>The request is sent to the Agentic Workflow Service running on port <code>8009</code>.</li>
 <li>The message parameter is passed as input to the <code>LLM Workflow</code>, which is then used to generate the plan and trigger the agentic workflow.</li>
 <li>This command demonstrates how to interact with the Agentic Workflow Service to kick off a new workflow.</li>
 </ul>
@@ -1473,9 +1602,9 @@ content-type: application/json
 </ul>
 <div class="language-yaml highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">appId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">WorkflowApp</span>
 <span class="w">  </span><span class="nt">appDirPath</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./services/workflow-random/</span>
-<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8008</span>
+<span class="w">  </span><span class="nt">appPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8009</span>
 <span class="w">  </span><span class="nt">command</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;python3&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;app.py&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50008</span>
+<span class="w">  </span><span class="nt">daprGRPCPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50009</span>
 </code></pre></div>
 <h3 id="reset-redis-database">Reset Redis Database<a class="headerlink" href="#reset-redis-database" title="Permanent link">&para;</a></h3>
 <ol>

@@ -1062,9 +1062,26 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actorStateStore</span>
 <span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
 </code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>Create a file named <code>config.yaml</code> at the same directory level of your <code>components</code> folder.</p>
+</div>
+<div class="language-yaml highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dapr.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Configuration</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydaprconfig</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">tracing</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">samplingRate</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">    </span><span class="nt">zipkin</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">endpointAddress</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://localhost:9411/api/v2/spans</span>
+<span class="w">  </span><span class="nt">features</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SchedulerReminders</span>
+<span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</code></pre></div>
 <h3 id="run-workflow">Run Workflow!<a class="headerlink" href="#run-workflow" title="Permanent link">&para;</a></h3>
 <p>Now, you can run that workflow with the <code>Dapr CLI</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>originalwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_original_activity.py
+<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>originalwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--config<span class="w"> </span>config.yaml<span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_dapr_activity.py
 </code></pre></div>
 <p><img alt="" src="../../../img/workflows_original_activity.png" /></p>
 <h2 id="dapr-workflow-floki-workflows">Dapr Workflow -&gt; Floki Workflows<a class="headerlink" href="#dapr-workflow-floki-workflows" title="Permanent link">&para;</a></h2>
@@ -1073,42 +1090,46 @@
 <p class="admonition-title">Info</p>
 <p>The same example as before can be written in the following way. While the difference might not be immediately noticeable, this is a straightforward example of task chaining using Python functions. Create a file named <code>wf_taskchain_floki_activity.py</code>.</p>
 </div>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkflowApp</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki.workflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkflowApp</span><span class="p">,</span> <span class="n">workflow</span><span class="p">,</span> <span class="n">task</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">floki.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DaprWorkflowContext</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
-<span class="n">wfapp</span> <span class="o">=</span> <span class="n">WorkflowApp</span><span class="p">()</span>
-
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;random_workflow&#39;</span><span class="p">)</span>
+<span class="nd">@workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;random_workflow&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span><span class="n">DaprWorkflowContext</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
     <span class="n">result1</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step1</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="nb">input</span><span class="p">)</span>
     <span class="n">result2</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step2</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result1</span><span class="p">)</span>
     <span class="n">result3</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">step3</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="n">result2</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">[</span><span class="n">result1</span><span class="p">,</span> <span class="n">result2</span><span class="p">,</span> <span class="n">result3</span><span class="p">]</span>
 
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span>
+<span class="nd">@task</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">step1</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 1: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">+</span> <span class="mi">1</span>
 
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span>
+<span class="nd">@task</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">step2</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 2: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">*</span> <span class="mi">2</span>
 
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span>
+<span class="nd">@task</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">step3</span><span class="p">(</span><span class="n">activity_input</span><span class="p">):</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Step 3: Received input: </span><span class="si">{</span><span class="n">activity_input</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
     <span class="c1"># Do some work</span>
     <span class="k">return</span> <span class="n">activity_input</span> <span class="o">^</span> <span class="mi">2</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="n">wfapp</span> <span class="o">=</span> <span class="n">WorkflowApp</span><span class="p">()</span>
+
     <span class="n">results</span> <span class="o">=</span> <span class="n">wfapp</span><span class="o">.</span><span class="n">run_and_monitor_workflow</span><span class="p">(</span><span class="n">task_chain_workflow</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Results: </span><span class="si">{</span><span class="n">results</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </code></pre></div>
 <p>Now, you can run that workflow with the same command with the <code>Dapr CLI</code>:</p>
-<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>flokiwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_floki_activity.py
+<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>flokiwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--config<span class="w"> </span>config.yaml<span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_floki_activity.py
 </code></pre></div>
 <p><img alt="" src="../../../img/workflows_floki_activity.png" /></p>
 <p>If we inspect the <code>Workflow State</code> in the state store, you would see something like this:</p>

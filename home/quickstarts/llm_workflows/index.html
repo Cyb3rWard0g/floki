@@ -1029,40 +1029,44 @@
 <h2 id="floki-llm-based-tasks">Floki LLM-based Tasks<a class="headerlink" href="#floki-llm-based-tasks" title="Permanent link">&para;</a></h2>
 <p>Now, let’s get to the exciting part! <code>Tasks</code> in <code>Floki</code> build on the concept of <code>activities</code> and bring additional flexibility. Using Python function signatures, you can define tasks with ease. The <code>task decorator</code> allows you to provide a <code>description</code> parameter, which acts as a prompt for the default LLM inference client in <code>Floki</code> (<code>OpenAIChatClient</code> by default).</p>
 <p>You can also use function arguments to pass variables to the prompt, letting you dynamically format the prompt before it’s sent to the text generation endpoint. This makes it simple to implement workflows that follow the <a href="https://docs.dapr.io/developing-applications/building-blocks/workflow/workflow-patterns/#task-chaining">Dapr Task chaining pattern</a>, just like in the earlier example, but with even more flexibility.</p>
-<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkflowApp</span>
+<div class="language-python highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">floki.workflow</span><span class="w"> </span><span class="kn">import</span> <span class="n">WorkflowApp</span><span class="p">,</span> <span class="n">workflow</span><span class="p">,</span> <span class="n">task</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">floki.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">DaprWorkflowContext</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dotenv</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_dotenv</span>
-
-<span class="c1"># Load environment variables</span>
-<span class="n">load_dotenv</span><span class="p">()</span>
-
-<span class="c1"># Initialize the WorkflowApp</span>
-<span class="n">wfapp</span> <span class="o">=</span> <span class="n">WorkflowApp</span><span class="p">()</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
 
 <span class="c1"># Define Workflow logic</span>
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;lotr_workflow&#39;</span><span class="p">)</span>
+<span class="nd">@workflow</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;lotr_workflow&#39;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">task_chain_workflow</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">DaprWorkflowContext</span><span class="p">):</span>
     <span class="n">result1</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">get_character</span><span class="p">)</span>
     <span class="n">result2</span> <span class="o">=</span> <span class="k">yield</span> <span class="n">ctx</span><span class="o">.</span><span class="n">call_activity</span><span class="p">(</span><span class="n">get_line</span><span class="p">,</span> <span class="nb">input</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;character&quot;</span><span class="p">:</span> <span class="n">result1</span><span class="p">})</span>
     <span class="k">return</span> <span class="n">result2</span>
 
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="nd">@task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;&quot;&quot;</span>
 <span class="s2">    Pick a random character from The Lord of the Rings</span><span class="se">\n</span>
-<span class="s2">    and respond with the character&#39;s name only</span>
+<span class="s2">    and respond with the character&#39;s name ONLY</span>
 <span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_character</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">pass</span>
 
-<span class="nd">@wfapp</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;What is a famous line by </span><span class="si">{character}</span><span class="s2">&quot;</span><span class="p">,)</span>
+<span class="nd">@task</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;What is a famous line by </span><span class="si">{character}</span><span class="s2">&quot;</span><span class="p">,)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_line</span><span class="p">(</span><span class="n">character</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">pass</span>
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="c1"># Load environment variables</span>
+    <span class="n">load_dotenv</span><span class="p">()</span>
+
+    <span class="c1"># Initialize the WorkflowApp</span>
+    <span class="n">wfapp</span> <span class="o">=</span> <span class="n">WorkflowApp</span><span class="p">()</span>
+
+    <span class="c1"># Run workflow</span>
     <span class="n">results</span> <span class="o">=</span> <span class="n">wfapp</span><span class="o">.</span><span class="n">run_and_monitor_workflow</span><span class="p">(</span><span class="n">task_chain_workflow</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Famous Line: </span><span class="si">{</span><span class="n">results</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 </code></pre></div>
 <p>Run the workflow with the following command:</p>
-<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>flokillmmwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_openai_floki_llm_request.py
+<div class="language-bash highlight"><pre><span></span><code>dapr<span class="w"> </span>run<span class="w"> </span>--app-id<span class="w"> </span>flokillmmwf<span class="w"> </span>--dapr-grpc-port<span class="w"> </span><span class="m">50001</span><span class="w"> </span>--resources-path<span class="w"> </span>components/<span class="w"> </span>--<span class="w"> </span>python3<span class="w"> </span>wf_taskchain_floki_oai_llm_request.py
 </code></pre></div>
 <p><img alt="" src="../../../img/workflows_floki_llm_request.png" /></p>
 
