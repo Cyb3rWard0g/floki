@@ -1,0 +1,55 @@
+{
+    "instances": {
+        "a7013667ff06495780f61af0d24ca204": {
+            "input": "What is the weather in New York? Based on the temperature in Fahrenheit, jump the same number of feet.",
+            "output": "The current temperature in New York is 67\u00b0F. Consequently, I jumped 67 feet to match the temperature!",
+            "start_time": "2025-03-09T17:31:57.519669",
+            "end_time": "2025-03-09T17:32:04.689585",
+            "messages": [
+                {
+                    "id": "a31b2294-b499-4590-936d-0a51318c1f82",
+                    "role": "user",
+                    "content": "What is the weather in New York? Based on the temperature in Fahrenheit, jump the same number of feet.",
+                    "timestamp": "2025-03-09T17:31:57.531837",
+                    "name": null
+                },
+                {
+                    "id": "12766d9c-1df1-425a-bcac-fb552d4067b7",
+                    "role": "assistant",
+                    "content": "The current temperature in New York is 67\u00b0F. Consequently, I jumped 67 feet to match the temperature!",
+                    "timestamp": "2025-03-09T17:32:04.684747",
+                    "name": null
+                }
+            ],
+            "last_message": {
+                "id": "12766d9c-1df1-425a-bcac-fb552d4067b7",
+                "role": "assistant",
+                "content": "The current temperature in New York is 67\u00b0F. Consequently, I jumped 67 feet to match the temperature!",
+                "timestamp": "2025-03-09T17:32:04.684747",
+                "name": null
+            },
+            "tool_history": [
+                {
+                    "content": "New York: 67F.",
+                    "role": "tool",
+                    "tool_call_id": "call_7Y4sp0yMuRtfFBw1KkZ7eg2F",
+                    "id": "6f60b67b-bb1f-4e0c-b74a-6d9b2d880818",
+                    "function_name": "GetWeather",
+                    "function_args": "{\"location\":\"New York\"}",
+                    "timestamp": "2025-03-09T17:32:00.957436"
+                },
+                {
+                    "content": "I jumped the following distance 67",
+                    "role": "tool",
+                    "tool_call_id": "call_8rbbzP9WAU5X3nvhGztzO5cV",
+                    "id": "542ac147-ff9c-45ff-bb5f-20a7eca8933e",
+                    "function_name": "Jump",
+                    "function_args": "{\"distance\":\"67\"}",
+                    "timestamp": "2025-03-09T17:32:02.746140"
+                }
+            ],
+            "source_agent": null,
+            "source_workflow_instance_id": null
+        }
+    }
+}

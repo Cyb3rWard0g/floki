@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import logging
 
 @workflow
-def question(ctx:DaprWorkflowContext, input:int):
+def question(ctx:DaprWorkflowContext, input:str):
     step1 = yield ctx.call_activity(ask, input=input)
     return step1
 

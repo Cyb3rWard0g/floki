@@ -1,4 +1,4 @@
-from floki.workflow.agents.assistant.state import AssistantWorkflowState, AssistantWorkflowEntry, AssistantWorkflowMessage
+from floki.workflow.agents.assistant.state import AssistantWorkflowState, AssistantWorkflowEntry, AssistantWorkflowMessage, AssistantWorkflowToolMessage
 from floki.workflow.agents.assistant.schemas import TriggerAction, AgentTaskResponse
 from floki.types import AgentError, ChatCompletion, ToolMessage
 from floki.types.message import BaseMessage, EventMessageMetadata
@@ -79,7 +79,7 @@ class AssistantAgent(AgentServiceBase):
             self.state["instances"].setdefault(instance_id, workflow_entry.model_dump(mode="json"))
 
             if not ctx.is_replaying:
-                logger.info(f"Initial message from {self.state["instances"][instance_id]["source_agent"]} -> {self.name}")
+                logger.info(f"Initial message from {self.state['instances'][instance_id]['source_agent']} -> {self.name}")
 
         # Step 2: Retrieve workflow entry for this instance
         workflow_entry = self.state["instances"][instance_id]
@@ -90,10 +90,6 @@ class AssistantAgent(AgentServiceBase):
         response = yield ctx.call_activity(self.generate_response, input={"instance_id": instance_id, "task": task})
         response_message = yield ctx.call_activity(self.get_response_message, input={"response" : response})
 
-        if not ctx.is_replaying:
-            # Create a temporary dictionary with "name" added only if missing
-            self.text_formatter.print_message({**response_message, "name": response_message.get("name", self.name)})
-
         # Step 4: Extract Finish Reason
         finish_reason = yield ctx.call_activity(self.get_finish_reason, input={"response" : response})
 
@@ -101,23 +97,19 @@ class AssistantAgent(AgentServiceBase):
         if finish_reason == "tool_calls":     
             if not ctx.is_replaying:
                 logger.info(f"Tool calls detected in LLM response, extracting and preparing for execution..")
-            
-            # Store the response message in tool history for tracking
-            self.tool_history.append(response_message)
 
             # Retrieve the list of tool calls extracted from the LLM response
             tool_calls = yield ctx.call_activity(self.get_tool_calls, input={"response": response})
 
-            # Execute tool calls in parallel if available
-            if tool_calls:
-                if not ctx.is_replaying:
-                    logger.info(f"Executing {len(tool_calls)} tool call(s) in parallel..")
-
-                parallel_tasks = [
-                    ctx.call_activity(self.execute_tool, input={"tool_call": tool_call})
-                    for tool_call in tool_calls
-                ]
-                yield self.when_all(parallel_tasks)
+            # Execute tool calls in parallel
+            if not ctx.is_replaying:
+                logger.info(f"Executing {len(tool_calls)} tool call(s)..")
+            
+            parallel_tasks = [
+                ctx.call_activity(self.execute_tool, input={"instance_id": instance_id, "tool_call": tool_call})
+                for tool_call in tool_calls
+            ]
+            yield self.when_all(parallel_tasks)
         else:
             if not ctx.is_replaying:
                 logger.info(f"Agent generating response without tool execution..")
@@ -178,13 +170,13 @@ class AssistantAgent(AgentServiceBase):
         Returns:
             ChatCompletion: The generated AI response encapsulated in a ChatCompletion object.
         """
+        # Contruct prompt messages
+        messages = self.construct_messages(task or {})
+
         # Store message in workflow state and local memory
         if task:
             task_message = {"role": "user", "content": task}
             await self.update_workflow_state(instance_id=instance_id, message=task_message)
-        
-        # Contruct prompt messages
-        messages = self.construct_messages(task or {})
 
         # Process conversation iterations
         messages += self.tool_history
@@ -208,6 +200,7 @@ class AssistantAgent(AgentServiceBase):
         """
         choices = response.get("choices", [])
         response_message = choices[0].get("message", {})
+        
         return response_message
     
     @task
@@ -256,6 +249,10 @@ class AssistantAgent(AgentServiceBase):
         if not choices:
             logger.warning("No choices found in LLM response.")
             return None
+        
+        # Save Tool Call Response Message
+        response_message = choices[0].get("message", {})
+        self.tool_history.append(response_message)
 
         # Extract tool calls safely
         tool_calls = choices[0].get("message", {}).get("tool_calls")
@@ -267,40 +264,40 @@ class AssistantAgent(AgentServiceBase):
         return tool_calls
     
     @task
-    def execute_tool(self, tool_call: Dict[str, Any]):
+    async def execute_tool(self, instance_id: str, tool_call: Dict[str, Any]):
         """
         Executes a tool call by invoking the specified function with the provided arguments.
 
         Args:
+            instance_id (str): The unique identifier of the workflow instance.
             tool_call (Dict[str, Any]): A dictionary containing tool execution details, including the function name and arguments.
 
         Raises:
             AgentError: If the tool call is malformed or execution fails.
         """
-        # Extract function details safely
         function_details = tool_call.get("function", {})
         function_name = function_details.get("name")
 
-        # Validate function name
         if not function_name:
             raise AgentError("Missing function name in tool execution request.")
 
         try:
-            # Extract and parse function arguments (if present)
             function_args = function_details.get("arguments", "")
             function_args_as_dict = json.loads(function_args) if function_args else {}
 
-            logger.info(f"Executing tool '{function_name}' with arguments {function_args_as_dict}")
-
-            # Execute the tool function with parsed arguments
+            # Execute tool function
             result = self.tool_executor.execute(function_name, **function_args_as_dict)
 
-            # Construct the tool response message
-            tool_message = ToolMessage(tool_call_id=tool_call.get("id"), name=function_name, content=str(result))
+            # Construct tool execution message payload
+            workflow_tool_message = {
+                "tool_call_id": tool_call.get("id"),
+                "function_name": function_name,
+                "function_args": function_args,
+                "content": str(result),
+            }
 
-            # Log and store the tool execution result
-            self.text_formatter.print_message(tool_message)
-            self.tool_history.append(tool_message)
+            # Update workflow state and agent tool history
+            await self.update_workflow_state(instance_id=instance_id, tool_message=workflow_tool_message)
 
         except json.JSONDecodeError:
             logger.error(f"Invalid JSON in tool arguments for function '{function_name}'")
@@ -365,33 +362,52 @@ class AssistantAgent(AgentServiceBase):
         # Store final output
         await self.update_workflow_state(instance_id=instance_id, final_output=message['content'])
     
-    async def update_workflow_state(self, instance_id: str, message: Optional[Dict[str, Any]] = None, final_output: Optional[str] = None):
+    async def update_workflow_state(
+        self, 
+        instance_id: str, 
+        message: Optional[Dict[str, Any]] = None, 
+        tool_message: Optional[Dict[str, Any]] = None, 
+        final_output: Optional[str] = None
+    ):
         """
         Updates the workflow state by appending a new message or setting the final output.
 
         Args:
             instance_id (str): The unique identifier of the workflow instance.
-            message (Optional[Dict[str, Any]]): A dictionary representing a message to be added to the workflow state.
+            message (Optional[Dict[str, Any]]): A dictionary representing a user/assistant message.
+            tool_message (Optional[Dict[str, Any]]): A dictionary representing a tool execution message.
             final_output (Optional[str]): The final output of the workflow, marking its completion.
 
         Raises:
             ValueError: If no workflow entry is found for the given instance_id.
         """
-        workflow_entry = self.state["instances"].get(instance_id)
+        workflow_entry : AssistantWorkflowEntry= self.state["instances"].get(instance_id)
         if not workflow_entry:
             raise ValueError(f"No workflow entry found for instance_id {instance_id} in local state.")
 
-        # Only update the provided fields
+        # Store user/assistant messages separately
         if message is not None:
             serialized_message = AssistantWorkflowMessage(**message).model_dump(mode="json")
-
-            # Update workflow state messages
             workflow_entry["messages"].append(serialized_message)
             workflow_entry["last_message"] = serialized_message
 
-            # Update the local chat history
+            # Add to memory only if it's a user/assistant message
             self.memory.add_message(message)
 
+        # Store tool execution messages separately in tool_history
+        if tool_message is not None:
+            serialized_tool_message = AssistantWorkflowToolMessage(**tool_message).model_dump(mode="json")
+            workflow_entry["tool_history"].append(serialized_tool_message)
+
+            # Also update agent-level tool history (execution tracking)
+            agent_tool_message = ToolMessage(
+                tool_call_id=tool_message["tool_call_id"], 
+                name=tool_message["function_name"], 
+                content=tool_message["content"]
+            )
+            self.tool_history.append(agent_tool_message)
+
+        # Store final output
         if final_output is not None:
             workflow_entry["output"] = final_output
             workflow_entry["end_time"] = datetime.now().isoformat()
