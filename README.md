@@ -66,14 +66,14 @@ Make sure you have [Docker](https://docs.docker.com/get-started/get-docker/) alr
 
 Initialize Dapr locally to set up a self-hosted environment for development. This process installs Dapr sidecar binaries, runs essential services like Redis (state store and message broker) and Zipkin (observability), and prepares a default components folder. For detailed steps, see the official [guide on initializing Dapr locally](https://docs.dapr.io/getting-started/install-dapr-selfhost/).
 
-> Currently Floki works best with dapr `1.15.0-rc.14` (until 1.15 is released). Therefore, I highly recommend to install that version.
+> Currently Floki works with dapr `^1.15`.
 
 To initialize the Dapr control plane containers and create a default configuration file, run:
 
 ```bash
 dapr uninstall --all
 
-dapr init --runtime-version=1.15.0-rc.14 
+dapr init
 ```
 
 Verify you have container instances with `daprio/dapr`, `openzipkin/zipkin`, and `redis` images running:
