@@ -3,8 +3,8 @@ requires = ["setuptools>=40.8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "floki-ai"
-version = "0.11.2"
+name = "floki"
+version = "0.12.2"
 description = "Agentic Workflows Made Simple"
 readme = "README.md"
 authors = [{ name = "Roberto Rodriguez" }]

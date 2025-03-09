@@ -4,8 +4,8 @@ with open("README.md", encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="floki-ai",
-    version="0.11.2",
+    name="floki",
+    version="0.12.2",
     author="Roberto Rodriguez",
     description="Agentic Workflows Made Simple",
     long_description=long_description,
