@@ -1,7 +1,7 @@
 # Floki: Agentic Workflows Made Simple
 
-[![pypi](https://img.shields.io/pypi/v/floki-ai.svg)](https://pypi.python.org/pypi/floki-ai)
-[![PyPI - Downloads](https://img.shields.io/pypi/dm/floki-ai)](https://pypi.org/project/floki-ai/)
+[![pypi](https://img.shields.io/pypi/v/floki.svg)](https://pypi.python.org/pypi/floki)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/floki)](https://pypi.org/project/floki/)
 [![GitHub Repo stars](https://img.shields.io/github/stars/Cyb3rWard0g/floki)](https://github.com/Cyb3rWard0g/floki)
 [![license](https://img.shields.io/github/license/Cyb3rWard0g/floki.svg)](https://github.com/Cyb3rWard0g/floki/blob/main/LICENSE)
 

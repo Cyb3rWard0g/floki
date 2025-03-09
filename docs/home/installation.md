@@ -8,7 +8,7 @@
 ### As a Python package using Pip
 
 ```bash
-pip install floki-ai
+pip install floki
 ```
 
 ### Remotely from GitHub
@@ -54,7 +54,7 @@ To initialize the Dapr control plane containers and create a default configurati
 ```bash
 dapr uninstall --all
 
-dapr init --runtime-version=1.15
+dapr init
 ```
 
 Verify you have container instances with `daprio/dapr`, `openzipkin/zipkin`, and `redis` images running:
